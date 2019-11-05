@@ -3,6 +3,7 @@ outputs/
 model/
 logs/
 __pycache__/
+.idea/
 core
 
 # Compiled source #

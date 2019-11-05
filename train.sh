@@ -51,7 +51,7 @@ case $1 in
         python main_train.py \
             --gpu_ids 2 \
             --train_all \
-            --save_dir pcb_rpp \
+            --model_dir ./model/pcb_rpp \
             --PCB densenet \
             --RPP \
             --warm_epoch 5 \
@@ -64,9 +64,8 @@ case $1 in
         python rpp.py \
             --gpu_ids 2 \
             --train_all \
-            --save_dir pcb_rpp \
+            --model_dir ./model/pcb_rpp \
             --PCB densenet \
-            --RPP \
             --warm_epoch 5 \
             --stride 1 \
             --erasing_p 0.5 \

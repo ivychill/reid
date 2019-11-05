@@ -210,18 +210,50 @@ if __name__ == '__main__':
     use_gpu = torch.cuda.is_available()
 
     #### load data ####
-    data_transforms = transforms.Compose([
+    transform_train_list = [
+            #transforms.RandomResizedCrop(size=128, scale=(0.75,1.0), ratio=(0.75,1.3333), interpolation=3), #Image.BICUBIC)
             transforms.Resize((256,128), interpolation=3),
+            transforms.Pad(10),
+            transforms.RandomCrop((256,128)),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+            ]
+
+    transform_val_list = [
+            transforms.Resize(size=(256,128),interpolation=3), #Image.BICUBIC
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]
 
     if opt.PCB != 'none':
-        data_transforms = transforms.Compose([
+        transform_train_list = [
             transforms.Resize((384,192), interpolation=3),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
+            ]
+        transform_val_list = [
+            transforms.Resize(size=(384,192),interpolation=3), #Image.BICUBIC
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ]
+
+    if opt.erasing_p>0:
+        transform_train_list = transform_train_list +  [RandomErasing(probability = opt.erasing_p, mean=[0.0, 0.0, 0.0])]
+
+    if opt.color_jitter:
+        transform_train_list = [transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0)] + transform_train_list
+
+    print(transform_train_list)
+    data_transforms = {
+        'train': transforms.Compose( transform_train_list ),
+        'val': transforms.Compose(transform_val_list),
+    }
+
+    train_all = ''
+    if opt.train_all:
+        train_all = '_all'
 
     image_datasets = {}
     image_datasets['train'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'train' + train_all),

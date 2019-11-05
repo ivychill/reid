@@ -12,7 +12,7 @@ from  re_ranking import re_ranking
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
 parser.add_argument('--model_dir', default='./model/pcb_rpp', type=str, help='save model path')
-parser.add_argument('--result_dir', default='./result', type=str, help='save result dir')
+parser.add_argument('--result_dir', default='./result/pcb_rpp', type=str, help='save result dir')
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--batchsize', default=256, type=int, help='batchsize')
 opt = parser.parse_args()
@@ -36,7 +36,7 @@ if opt.PCB:
     ])
 
 
-result = scipy.io.loadmat('pytorch_result.mat')
+result = scipy.io.loadmat(os.path.join(opt.result_dir, 'feature.mat'))
 query_feature = result['query_f']
 gallery_feature = result['gallery_f']
 
@@ -73,5 +73,7 @@ for index_query in range(len(reranked_dist_m)):
 
     res[query_name] = responses
 
+if not os.path.isdir(opt.result_dir):
+    os.mkdir(opt.result_dir)
 with open(os.path.join(opt.result_dir, 'result_rerank.json'), 'w') as f:
     json.dump(res, f)

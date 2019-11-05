@@ -44,20 +44,23 @@ case $1 in
         ;;
 
     pcb_rpp)
-        python test.py \
+        python main_test.py \
             --gpu_ids 1 \
-            --name pcb_trick \
-            --PCB densenet
-            --stage full
-            --test_dir ../dataset/match/pytorch \
+            --PCB densenet \
+            --RPP \
+            --stage full \
+            --data_dir ../dataset/match/pytorch \
+            --model_dir ./model/pcb_rpp \
+            --result_dir ./result/pcb_rpp \
             --batchsize 256 \
-            --which_epoch 119 \
+            --which_epoch last \
             --ms 1,0.9
         ;;
 
     rerank)
         python rerank_output.py \
-            --name pcb_trick \
+            --model_dir ./model/pcb_rpp \
+            --result_dir ./result/pcb_rpp \
             --data_dir ../dataset/match/pytorch
         ;;
 

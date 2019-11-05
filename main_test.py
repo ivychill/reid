@@ -37,11 +37,11 @@ parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1
 parser.add_argument('--which_epoch',default='last', type=str, help='0,1,2,3...or last')
 parser.add_argument('--data_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
 parser.add_argument('--model_dir', default='./model/pcb_rpp', type=str, help='save model path')
-parser.add_argument('--result_dir', default='./result', type=str, help='save result dir')
+parser.add_argument('--result_dir', default='./result/pcb_rpp', type=str, help='save result dir')
 parser.add_argument('--batchsize', default=256, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--PCB', default='none', choices=['none', 'resnet', 'densenet'], help='use PCB')
-# parser.add_argument('--RPP', action='store_true', help='use RPP', default=False)
+parser.add_argument('--RPP', action='store_true', help='use RPP', default=False)
 parser.add_argument('--stage', default='pcb', type=str, help='save model path')
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--fp16', action='store_true', help='use fp16.' )
@@ -117,7 +117,7 @@ use_gpu = torch.cuda.is_available()
 # Load model
 #---------------------------
 def load_network(network):
-    save_path = os.path.join(opt.model_dir, 'net_%s.pth'%opt.which_epoch)
+    save_path = os.path.join(opt.model_dir, opt.stage, 'net_%s.pth'%opt.which_epoch)
     network.load_state_dict(torch.load(save_path))
     return network
 
@@ -199,6 +199,8 @@ else:
 if opt.PCB != 'none':
     model_structure = PCB(opt.nclasses)
 
+if opt.RPP:
+    model_structure = model_structure.convert_to_rpp()
 model = load_network(model_structure)
 
 # Remove the final fc layer and classifier layer
@@ -221,10 +223,12 @@ with torch.no_grad():
     
 # Save to Matlab for check
 result = {'gallery_f':gallery_feature.numpy(),'query_f':query_feature.numpy()}
-scipy.io.savemat(os.path.join(opt.result_dir, 'pytorch_result.mat'),result)
+if not os.path.isdir(opt.result_dir):
+    os.mkdir(opt.result_dir)
+scipy.io.savemat(os.path.join(opt.result_dir, 'feature.mat'),result)
 
 if opt.multi:
     result = {'mquery_f':mquery_feature.numpy()}
-    scipy.io.savemat('multi_query.mat',result)
+    scipy.io.savemat(os.path.join(opt.result_dir, 'multi_query.mat'),result)
 
 output.gen_submission(image_datasets, query_feature, gallery_feature, opt.result_dir)
