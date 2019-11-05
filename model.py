@@ -203,6 +203,10 @@ class PCB(nn.Module):
             y.append(predict[i])
         return y
 
+    def convert_to_rpp(self):
+        self.avgpool = RPP()
+        return self
+
 class PCB_test(nn.Module):
     def __init__(self,model):
         super(PCB_test,self).__init__()
@@ -259,6 +263,10 @@ class PCB_dense(nn.Module):
             y.append(predict[i])
         return y
 
+    def convert_to_rpp(self):
+        self.avgpool = RPP()
+        return self
+
 class PCB_dense_test(nn.Module):
     def __init__(self,model):
         super(PCB_dense_test,self).__init__()
@@ -278,12 +286,12 @@ class RPP(nn.Module):
         super(RPP, self).__init__()
         self.part = 6
         add_block = []
-        add_block += [nn.Conv2d(2048, 6, kernel_size=1, bias=False)]
+        add_block += [nn.Conv2d(1024, 6, kernel_size=1, bias=False)]
         add_block = nn.Sequential(*add_block)
         add_block.apply(weights_init_kaiming)
 
         norm_block = []
-        norm_block += [nn.BatchNorm2d(2048)]
+        norm_block += [nn.BatchNorm2d(1024)]
         norm_block += [nn.ReLU(inplace=True)]
         # norm_block += [nn.LeakyReLU(0.1, inplace=True)]
         norm_block = nn.Sequential(*norm_block)
@@ -293,7 +301,6 @@ class RPP(nn.Module):
         self.norm_block = norm_block
         self.softmax = nn.Softmax(dim=1)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-
 
     def forward(self, x):
         w = self.add_block(x)

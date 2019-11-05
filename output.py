@@ -1,7 +1,8 @@
 
 import torch
-import json
 import numpy as np
+import os
+import json
 
 # sort the images
 def sort_img(qf, gf):
@@ -16,7 +17,7 @@ def sort_img(qf, gf):
 
     return index
 
-def gen_submission(image_datasets, query_feature, gallery_feature):
+def gen_submission(image_datasets, query_feature, gallery_feature, result_dir='./'):
     res = {}
     for k in range(len(query_feature)):
         index = sort_img(query_feature[k], gallery_feature)
@@ -31,5 +32,5 @@ def gen_submission(image_datasets, query_feature, gallery_feature):
 
         res[query_name] = responses
 
-    with open('result.json', 'w') as f:
+    with open(os.path.join(result_dir, 'result.json'), 'w') as f:
         json.dump(res, f)

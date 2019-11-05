@@ -43,6 +43,18 @@ case $1 in
             --ms 1,0.9
         ;;
 
+    pcb_rpp)
+        python test.py \
+            --gpu_ids 1 \
+            --name pcb_trick \
+            --PCB densenet
+            --stage full
+            --test_dir ../dataset/match/pytorch \
+            --batchsize 256 \
+            --which_epoch 119 \
+            --ms 1,0.9
+        ;;
+
     rerank)
         python rerank_output.py \
             --name pcb_trick \

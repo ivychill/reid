@@ -206,8 +206,8 @@ else:
 if opt.PCB:
     model_structure = PCB(opt.nclasses)
 
-#if opt.fp16:
-#    model_structure = network_to_half(model_structure)
+# if opt.RPP:
+#     model_structure = model_structure.convert_to_rpp()
 
 model = load_network(model_structure)
 

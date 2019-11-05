@@ -11,14 +11,14 @@ from  re_ranking import re_ranking
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='ft_ResNet50', type=str, help='save model path')
-parser.add_argument('--PCB', action='store_true', help='use PCB' )
+parser.add_argument('--model_dir', default='./model/pcb_rpp', type=str, help='save model path')
+parser.add_argument('--result_dir', default='./result', type=str, help='save result dir')
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--batchsize', default=256, type=int, help='batchsize')
 opt = parser.parse_args()
-config_path = os.path.join('./model',opt.name,'opts.yaml')
+config_path = os.path.join(opt.model_dir,'opts.yaml')
 with open(config_path, 'r') as stream:
-        config = yaml.load(stream)
+    config = yaml.load(stream)
 opt.PCB = config['PCB']
 
 
@@ -73,5 +73,5 @@ for index_query in range(len(reranked_dist_m)):
 
     res[query_name] = responses
 
-with open('result_rerank.json', 'w') as f:
+with open(os.path.join(opt.result_dir, 'result_rerank.json'), 'w') as f:
     json.dump(res, f)
