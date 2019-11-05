@@ -172,10 +172,11 @@ class PCB(nn.Module):
         # remove the final downsample
         self.model.layer4[0].downsample[0].stride = (1,1)
         self.model.layer4[0].conv2.stride = (1,1)
+
         # define 6 classifiers
+        self.classifiers = nn.ModuleList()
         for i in range(self.part):
-            name = 'classifier'+str(i)
-            setattr(self, name, ClassBlock(2048, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256))
+            self.classifiers.append(ClassBlock(2048, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256))
 
     def forward(self, x):
         x = self.model.conv1(x)
@@ -193,15 +194,10 @@ class PCB(nn.Module):
         predict = {}
         # get six part feature batchsize*2048*6
         for i in range(self.part):
-            part[i] = torch.squeeze(x[:,:,i])
-            name = 'classifier'+str(i)
-            c = getattr(self,name)
-            predict[i] = c(part[i])
+            part[i] = torch.squeeze(x[:, :, i])
+            # print part[i].shape
+            predict[i] = self.classifiers[i](part[i])
 
-        # sum prediction
-        #y = predict[0]
-        #for i in range(self.part-1):
-        #    y += predict[i+1]
         y = []
         for i in range(self.part):
             y.append(predict[i])
@@ -230,6 +226,90 @@ class PCB_test(nn.Module):
         x = self.avgpool(x)
         y = x.view(x.size(0),x.size(1),x.size(2))
         return y
+
+class PCB_dense(nn.Module):
+    def __init__(self, class_num):
+        super(PCB_dense, self).__init__()
+
+        self.part = 6  # We cut the pool5 to 6 parts
+        model_ft = models.densenet121(pretrained=True)
+        self.model = model_ft
+        self.avgpool = nn.AdaptiveAvgPool2d((self.part, 1))
+        self.dropout = nn.Dropout(p=0.5)
+
+        # define 6 classifiers
+        self.classifiers = nn.ModuleList()
+        for i in range(self.part):
+            self.classifiers.append(ClassBlock(1024, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256))
+
+    def forward(self, x):
+        x = self.model.features(x)
+        x = self.avgpool(x)
+        x = self.dropout(x)
+        part = {}
+        predict = {}
+        # get six part feature batchsize*2048*6
+        for i in range(self.part):
+            part[i] = torch.squeeze(x[:, :, i])
+            # print part[i].shape
+            predict[i] = self.classifiers[i](part[i])
+
+        y = []
+        for i in range(self.part):
+            y.append(predict[i])
+        return y
+
+class PCB_dense_test(nn.Module):
+    def __init__(self,model):
+        super(PCB_dense_test,self).__init__()
+        self.part = 6
+        self.model = model.model
+        self.avgpool = nn.AdaptiveAvgPool2d((self.part,1))
+
+    def forward(self, x):
+        x = self.model.features(x)
+        x = self.avgpool(x)
+        y = x.view(x.size(0),x.size(1),x.size(2))
+        return y
+
+# Define the RPP layers
+class RPP(nn.Module):
+    def __init__(self):
+        super(RPP, self).__init__()
+        self.part = 6
+        add_block = []
+        add_block += [nn.Conv2d(2048, 6, kernel_size=1, bias=False)]
+        add_block = nn.Sequential(*add_block)
+        add_block.apply(weights_init_kaiming)
+
+        norm_block = []
+        norm_block += [nn.BatchNorm2d(2048)]
+        norm_block += [nn.ReLU(inplace=True)]
+        # norm_block += [nn.LeakyReLU(0.1, inplace=True)]
+        norm_block = nn.Sequential(*norm_block)
+        norm_block.apply(weights_init_kaiming)
+
+        self.add_block = add_block
+        self.norm_block = norm_block
+        self.softmax = nn.Softmax(dim=1)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+
+    def forward(self, x):
+        w = self.add_block(x)
+        p = self.softmax(w)
+        y = []
+        for i in range(self.part):
+            p_i = p[:, i, :, :]
+            p_i = torch.unsqueeze(p_i, 1)
+            y_i = torch.mul(x, p_i)
+            y_i = self.norm_block(y_i)
+            y_i = self.avgpool(y_i)
+            y.append(y_i)
+
+        f = torch.cat(y, 2)
+        return f
+
 '''
 # debug model structure
 # Run this code with:

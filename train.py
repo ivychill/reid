@@ -16,7 +16,9 @@ import matplotlib.pyplot as plt
 #from PIL import Image
 import time
 import os
-from model import ft_net, ft_net_dense, ft_net_NAS, PCB
+# from model import ft_net, ft_net_dense, ft_net_NAS, PCB
+from model import ft_net, ft_net_dense, ft_net_NAS
+from model import PCB_dense as PCB
 from random_erasing import RandomErasing
 import yaml
 import math
@@ -328,8 +330,30 @@ if not opt.PCB:
              {'params': model.classifier.parameters(), 'lr': opt.lr}
          ], weight_decay=5e-4, momentum=0.9, nesterov=True)
 else:
-    ignored_params = list(map(id, model.model.fc.parameters() ))
-    ignored_params += (list(map(id, model.classifier0.parameters() )) 
+    # ignored_params = list(map(id, model.model.fc.parameters() ))
+    # ignored_params += (list(map(id, model.classifier0.parameters() ))
+    #                  +list(map(id, model.classifier1.parameters() ))
+    #                  +list(map(id, model.classifier2.parameters() ))
+    #                  +list(map(id, model.classifier3.parameters() ))
+    #                  +list(map(id, model.classifier4.parameters() ))
+    #                  +list(map(id, model.classifier5.parameters() ))
+    #                  #+list(map(id, model.classifier6.parameters() ))
+    #                  #+list(map(id, model.classifier7.parameters() ))
+    #                   )
+    # base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
+    # optimizer_ft = optim.SGD([
+    #          {'params': base_params, 'lr': 0.1*opt.lr},
+    #          {'params': model.model.fc.parameters(), 'lr': opt.lr},
+    #          {'params': model.classifier0.parameters(), 'lr': opt.lr},
+    #          {'params': model.classifier1.parameters(), 'lr': opt.lr},
+    #          {'params': model.classifier2.parameters(), 'lr': opt.lr},
+    #          {'params': model.classifier3.parameters(), 'lr': opt.lr},
+    #          {'params': model.classifier4.parameters(), 'lr': opt.lr},
+    #          {'params': model.classifier5.parameters(), 'lr': opt.lr},
+    #          #{'params': model.classifier6.parameters(), 'lr': 0.01},
+    #          #{'params': model.classifier7.parameters(), 'lr': 0.01}
+    #      ], weight_decay=5e-4, momentum=0.9, nesterov=True)
+    ignored_params = (list(map(id, model.classifier0.parameters() ))
                      +list(map(id, model.classifier1.parameters() ))
                      +list(map(id, model.classifier2.parameters() ))
                      +list(map(id, model.classifier3.parameters() ))
@@ -341,7 +365,6 @@ else:
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
     optimizer_ft = optim.SGD([
              {'params': base_params, 'lr': 0.1*opt.lr},
-             {'params': model.model.fc.parameters(), 'lr': opt.lr},
              {'params': model.classifier0.parameters(), 'lr': opt.lr},
              {'params': model.classifier1.parameters(), 'lr': opt.lr},
              {'params': model.classifier2.parameters(), 'lr': opt.lr},
@@ -382,5 +405,5 @@ if fp16:
 criterion = nn.CrossEntropyLoss()
 
 model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
-                       num_epochs=60)
+                       num_epochs=150)
 

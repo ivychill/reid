@@ -5,19 +5,23 @@ from __future__ import print_function, division
 import argparse
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.optim import lr_scheduler
+# import torch.optim as optim
+# from torch.optim import lr_scheduler
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 import numpy as np
-import torchvision
+# import torchvision
 from torchvision import datasets, models, transforms
-import time
+# import time
 import os
 import scipy.io
 import yaml
 import math
-from model import ft_net, ft_net_dense, ft_net_NAS, PCB, PCB_test
+# from model import ft_net, ft_net_dense, ft_net_NAS, PCB, PCB_test
+from model import ft_net, ft_net_dense, ft_net_NAS
+from model import PCB_dense as PCB
+from model import PCB_dense_test as PCB_test
+import output
 
 #fp16
 try:
@@ -31,19 +35,19 @@ except ImportError: # will be 3.x series
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
 parser.add_argument('--which_epoch',default='last', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='../Market/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='ft_ResNet50', type=str, help='save model path')
+parser.add_argument('--test_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
+parser.add_argument('--save_dir', default='ft_ResNet50', type=str, help='save model path')
 parser.add_argument('--batchsize', default=256, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--PCB', action='store_true', help='use PCB' )
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--fp16', action='store_true', help='use fp16.' )
-parser.add_argument('--ms',default='1', type=str,help='multiple_scale: e.g. 1 1,1.1  1,1.1,1.2')
+parser.add_argument('--ms',default='1', type=str, help='multiple_scale: e.g. 1 1,1.1  1,1.1,1.2')
 
 opt = parser.parse_args()
 ###load config###
 # load the training config
-config_path = os.path.join('./model',opt.name,'opts.yaml')
+config_path = os.path.join('./model',opt.save_dir,'opts.yaml')
 with open(config_path, 'r') as stream:
         config = yaml.load(stream)
 opt.fp16 = config['fp16'] 
@@ -59,7 +63,7 @@ else:
 
 str_ids = opt.gpu_ids.split(',')
 #which_epoch = opt.which_epoch
-name = opt.name
+save_dir = opt.save_dir
 test_dir = opt.test_dir
 
 gpu_ids = []
@@ -91,16 +95,6 @@ data_transforms = transforms.Compose([
         transforms.Resize((256,128), interpolation=3),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-############### Ten Crop        
-        #transforms.TenCrop(224),
-        #transforms.Lambda(lambda crops: torch.stack(
-         #   [transforms.ToTensor()(crop) 
-          #      for crop in crops]
-           # )),
-        #transforms.Lambda(lambda crops: torch.stack(
-         #   [transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(crop)
-          #       for crop in crops]
-          # ))
 ])
 
 if opt.PCB:
@@ -128,7 +122,7 @@ use_gpu = torch.cuda.is_available()
 # Load model
 #---------------------------
 def load_network(network):
-    save_path = os.path.join('./model',name,'net_%s.pth'%opt.which_epoch)
+    save_path = os.path.join('./model',save_dir,'net_%s.pth'%opt.which_epoch)
     network.load_state_dict(torch.load(save_path))
     return network
 
@@ -155,7 +149,8 @@ def extract_feature(model,dataloaders):
         print(count)
         ff = torch.FloatTensor(n,512).zero_().cuda()
         if opt.PCB:
-            ff = torch.FloatTensor(n,2048,6).zero_().cuda() # we have six parts
+            # ff = torch.FloatTensor(n,2048,6).zero_().cuda() # we have six parts
+            ff = torch.FloatTensor(n,1024,6).zero_().cuda() # we have six parts
 
         for i in range(2):
             if(i==1):
@@ -197,15 +192,6 @@ def get_id(img_path):
         camera_id.append(int(camera[0]))
     return camera_id, labels
 
-gallery_path = image_datasets['gallery'].imgs
-query_path = image_datasets['query'].imgs
-
-gallery_cam,gallery_label = get_id(gallery_path)
-query_cam,query_label = get_id(query_path)
-
-if opt.multi:
-    mquery_path = image_datasets['multi-query'].imgs
-    mquery_cam,mquery_label = get_id(mquery_path)
 
 ######################################################################
 # Load Collected data Trained model
@@ -251,13 +237,15 @@ with torch.no_grad():
         mquery_feature = extract_feature(model,dataloaders['multi-query'])
     
 # Save to Matlab for check
-result = {'gallery_f':gallery_feature.numpy(),'gallery_label':gallery_label,'gallery_cam':gallery_cam,'query_f':query_feature.numpy(),'query_label':query_label,'query_cam':query_cam}
+result = {'gallery_f':gallery_feature.numpy(),'query_f':query_feature.numpy()}
 scipy.io.savemat('pytorch_result.mat',result)
 
-print(opt.name)
-result = './model/%s/result.txt'%opt.name
-os.system('python evaluate_gpu.py | tee -a %s'%result)
+print(opt.save_dir)
+result = './model/%s/result.txt'%opt.save_dir
+# os.system('python evaluate_gpu.py | tee -a %s'%result)
 
 if opt.multi:
-    result = {'mquery_f':mquery_feature.numpy(),'mquery_label':mquery_label,'mquery_cam':mquery_cam}
+    result = {'mquery_f':mquery_feature.numpy()}
     scipy.io.savemat('multi_query.mat',result)
+
+output.gen_submission(image_datasets, query_feature, gallery_feature)
