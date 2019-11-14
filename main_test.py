@@ -46,9 +46,7 @@ parser.add_argument('--stage', default='pcb', type=str, help='save model path')
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--fp16', action='store_true', help='use fp16.' )
 parser.add_argument('--ms',default='1', type=str, help='multiple_scale: e.g. 1 1,1.1  1,1.1,1.2')
-
 opt = parser.parse_args()
-
 config_path = os.path.join(opt.model_dir, 'opts.yaml')
 with open(config_path, 'r') as stream:
         config = yaml.load(stream)
@@ -57,11 +55,17 @@ opt.PCB = config['PCB']
 opt.use_dense = config['use_dense']
 opt.use_NAS = config['use_NAS']
 opt.stride = config['stride']
-
 if 'nclasses' in config: # tp compatible with old config files
     opt.nclasses = config['nclasses']
 else: 
     opt.nclasses = 751 
+
+seed = 0
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 str_ids = opt.gpu_ids.split(',')
 gpu_ids = []

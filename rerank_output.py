@@ -21,6 +21,12 @@ with open(config_path, 'r') as stream:
     config = yaml.load(stream)
 opt.PCB = config['PCB']
 
+seed = 0
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 data_transforms = transforms.Compose([
         transforms.Resize((256,128), interpolation=3),
@@ -46,7 +52,7 @@ q_g_dist = np.dot(query_feature, np.transpose(gallery_feature))
 q_q_dist = np.dot(query_feature, np.transpose(query_feature))
 g_g_dist = np.dot(gallery_feature, np.transpose(gallery_feature))
 since = time.time()
-reranked_dist_m = re_ranking(q_g_dist, q_q_dist, g_g_dist, k1=10, k2=3, lambda_value=0.75)
+reranked_dist_m = re_ranking(q_g_dist, q_q_dist, g_g_dist, k1=7, k2=3, lambda_value=0.85)
 time_elapsed = time.time() - since
 print('Reranking complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 

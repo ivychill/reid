@@ -151,8 +151,10 @@ def pcb_train(model, criterion, log_file, stage, num_epoch):
 
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
     optimizer_ft = optim.SGD([
-        {'params': base_params, 'lr': 0.01},
-        {'params': model.classifiers.parameters(), 'lr': 0.1},
+        # {'params': base_params, 'lr': 0.01},
+        # {'params': model.classifiers.parameters(), 'lr': 0.1},
+        {'params': base_params, 'lr': 0.1 * opt.lr},
+        {'params': model.classifiers.parameters(), 'lr': opt.lr}
     ], weight_decay=5e-4, momentum=0.9, nesterov=True)
 
     # Decay LR by a factor of 0.1 every 40 epochs
@@ -175,7 +177,9 @@ def rpp_train(model, criterion, log_file, stage, num_epoch):
     #     {'params': base_params, 'lr': 0.00},
     #     {'params': get_net(opt, model).avgpool.parameters(), 'lr': 0.01},
     # ], weight_decay=5e-4, momentum=0.9, nesterov=True)
-    optimizer_ft = optim.SGD(model.avgpool.parameters(), lr=0.01,
+    # optimizer_ft = optim.SGD(model.avgpool.parameters(), lr=0.01,
+    #                           weight_decay=5e-4, momentum=0.9, nesterov=True)
+    optimizer_ft = optim.SGD(model.avgpool.parameters(), lr=0.1 * opt.lr,
                               weight_decay=5e-4, momentum=0.9, nesterov=True)
 
     # Decay LR by a factor of 0.1 every 100 epochs (never use)
@@ -195,9 +199,12 @@ def full_train(model, criterion, log_file, stage, num_epoch):
 
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
     optimizer_ft = optim.SGD([
-        {'params': base_params, 'lr': 0.001},
-        {'params': model.classifiers.parameters(), 'lr': 0.01},
-        {'params': model.avgpool.parameters(), 'lr': 0.01},
+        # {'params': base_params, 'lr': 0.001},
+        # {'params': model.classifiers.parameters(), 'lr': 0.01},
+        # {'params': model.avgpool.parameters(), 'lr': 0.01},
+        {'params': base_params, 'lr': 0.01 * opt.lr},
+        {'params': model.classifiers.parameters(), 'lr': 0.1 * opt.lr},
+        {'params': model.avgpool.parameters(), 'lr': 0.1 * opt.lr},
     ], weight_decay=5e-4, momentum=0.9, nesterov=True)
 
     # Decay LR by a factor of 0.1 every 100 epochs (never use)
@@ -263,9 +270,11 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     ####  setSeed ####
-    seed = 1994
+    seed = 0
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     #### gpu ####
     str_ids = opt.gpu_ids.split(',')
@@ -349,15 +358,6 @@ if __name__ == '__main__':
     ax0 = fig.add_subplot(121, title="loss")
     ax1 = fig.add_subplot(122, title="top1err")
 
-    #### save args, model and result ####
-    if not os.path.isdir(opt.model_dir):
-        os.mkdir(opt.model_dir)
-    with open(os.path.join(opt.model_dir, 'opts.yaml'),'w') as fp:
-        yaml.dump(vars(opt), fp, default_flow_style=False)
-    log_file = open(os.path.join(opt.model_dir, 'train.log'), 'w')
-    copyfile('./main_train.py', os.path.join(opt.model_dir, 'main_train.py'))
-    copyfile('./model.py', os.path.join(opt.model_dir, 'model.py'))
-
     #### model ####
     if opt.use_dense:
         model = ft_net_dense(len(class_names), opt.droprate)
@@ -369,6 +369,15 @@ if __name__ == '__main__':
         model = PCB(len(class_names))
     opt.nclasses = len(class_names)
     print(model)
+
+    #### save args and model ####
+    if not os.path.isdir(opt.model_dir):
+        os.mkdir(opt.model_dir)
+    with open(os.path.join(opt.model_dir, 'opts.yaml'),'w') as fp:
+        yaml.dump(vars(opt), fp, default_flow_style=False)
+    log_file = open(os.path.join(opt.model_dir, 'train.log'), 'w')
+    copyfile('./main_train.py', os.path.join(opt.model_dir, 'main_train.py'))
+    copyfile('./model.py', os.path.join(opt.model_dir, 'model.py'))
 
     #### start train ####
     # step1: PCB training #
@@ -386,10 +395,10 @@ if __name__ == '__main__':
         model = model.convert_to_rpp()
         if use_gpu:
             model = model.cuda()
-        model = rpp_train(model, criterion, log_file, stage, 5)
+        model = rpp_train(model, criterion, log_file, stage, 20)
 
         # step4: whole net training #
         stage = 'full'
-        full_train(model, criterion, log_file, stage, 10)
+        full_train(model, criterion, log_file, stage, 20)
 
     log_file.close()

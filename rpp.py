@@ -2,11 +2,19 @@
 import argparse
 import torch
 import torch.nn as nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
+from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 from torchvision import datasets, models, transforms
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import yaml
 import os
+import time
 import math
+from random_erasing import RandomErasing
 from model import PCB_dense as PCB
 
 
@@ -16,8 +24,6 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
     # best_model_wts = model.state_dict()
     # best_acc = 0.0
     last_model_wts = model.state_dict()
-    warm_up = 0.1  # We start from the 0.1*lrRate
-    warm_iteration = round(dataset_sizes['train'] / opt.batchsize) * opt.warm_epoch  # first 5 epoch
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -74,11 +80,6 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                     loss = criterion(part[0], labels)
                     for i in range(num_part - 1):
                         loss += criterion(part[i + 1], labels)
-
-                # backward + optimize only if in training phase
-                if epoch < opt.warm_epoch and phase == 'train':
-                    warm_up = min(1.0, warm_up + 0.9 / warm_iteration)
-                    loss *= warm_up
 
                 if phase == 'train':
                     if opt.fp16:  # we use optimier to backward loss
@@ -138,7 +139,7 @@ def rpp_train(model, criterion, log_file, stage, num_epoch):
     #     {'params': base_params, 'lr': 0.00},
     #     {'params': get_net(opt, model).avgpool.parameters(), 'lr': 0.01},
     # ], weight_decay=5e-4, momentum=0.9, nesterov=True)
-    optimizer_ft = optim.SGD(model.avgpool.parameters(), lr=0.01,
+    optimizer_ft = optim.SGD(model.avgpool.parameters(), lr=0.1 * opt.lr,
                               weight_decay=5e-4, momentum=0.9, nesterov=True)
 
     # Decay LR by a factor of 0.1 every 100 epochs (never use)
@@ -158,9 +159,9 @@ def full_train(model, criterion, log_file, stage, num_epoch):
 
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
     optimizer_ft = optim.SGD([
-        {'params': base_params, 'lr': 0.001},
-        {'params': model.classifiers.parameters(), 'lr': 0.01},
-        {'params': model.avgpool.parameters(), 'lr': 0.01},
+        {'params': base_params, 'lr': 0.01 * opt.lr},
+        {'params': model.classifiers.parameters(), 'lr': 0.1 * opt.lr},
+        {'params': model.avgpool.parameters(), 'lr': 0.1 * opt.lr},
     ], weight_decay=5e-4, momentum=0.9, nesterov=True)
 
     # Decay LR by a factor of 0.1 every 100 epochs (never use)
@@ -169,8 +170,35 @@ def full_train(model, criterion, log_file, stage, num_epoch):
                         log_file, stage, num_epochs=num_epoch)
     return model
 
+######################################################################
+# Draw Curve
+#---------------------------
+def draw_curve(current_epoch):
+    x_epoch.append(current_epoch)
+    ax0.plot(x_epoch, y_loss['train'], 'bo-', label='train')
+    ax0.plot(x_epoch, y_loss['val'], 'ro-', label='val')
+    ax1.plot(x_epoch, y_err['train'], 'bo-', label='train')
+    ax1.plot(x_epoch, y_err['val'], 'ro-', label='val')
+    if current_epoch == 0:
+        ax0.legend()
+        ax1.legend()
+    fig.savefig( os.path.join(opt.model_dir, 'train.jpg'))
+
+######################################################################
+# Save model
+#---------------------------
+def save_network(network, epoch_label, stage):
+    save_filename = 'net_%s.pth'% epoch_label
+    save_sub_dir = os.path.join(opt.model_dir, stage)
+    if not os.path.isdir(save_sub_dir):
+        os.mkdir(save_sub_dir)
+    save_path = os.path.join(save_sub_dir, save_filename)
+    torch.save(network.cpu().state_dict(), save_path)
+    if torch.cuda.is_available():
+        network.cuda(gpu_ids[0])
+
 def load_network(network):
-    save_path = os.path.join(opt.model_dir, 'net_%s.pth'%opt.which_epoch)
+    save_path = os.path.join(opt.model_dir, 'pcb', 'net_%s.pth'%opt.which_epoch)
     network.load_state_dict(torch.load(save_path))
     return network
 
@@ -179,10 +207,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training')
     parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
     parser.add_argument('--which_epoch',default='last', type=str, help='0,1,2,3...or last')
-    parser.add_argument('--which_epoch',default='last', type=str, help='0,1,2,3...or last')
     parser.add_argument('--data_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
     parser.add_argument('--model_dir', default='./model/pcb_rpp', type=str, help='save model path')
-    parser.add_argument('--result_dir', default='./result', type=str, help='save result dir')
+    parser.add_argument('--train_all', action='store_true', help='use all training data' )
+    parser.add_argument('--color_jitter', action='store_true', help='use color jitter in training' )
+    parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
+    parser.add_argument('--warm_epoch', default=0, type=int, help='the first K epoch that needs warm up')
+    parser.add_argument('--erasing_p', default=0, type=float, help='Random Erasing probability, in [0,1]')
+    parser.add_argument('--PCB', default='none', choices=['none', 'resnet', 'densenet'], help='use PCB')
+    parser.add_argument('--lr', default=0.05, type=float, help='learning rate')
+    parser.add_argument('--fp16', action='store_true', help='use float16 instead of float32, which will save about 50% memory' )
     opt = parser.parse_args()
 
     config_path = os.path.join(opt.model_dir,'opts.yaml')
@@ -195,14 +229,13 @@ if __name__ == '__main__':
     else:
         opt.nclasses = 751
 
-
     #### gpu ####
     str_ids = opt.gpu_ids.split(',')
     gpu_ids = []
     for str_id in str_ids:
-        id = int(str_id)
-        if id >=0:
-            gpu_ids.append(id)
+        gid = int(str_id)
+        if gid >=0:
+            gpu_ids.append(gid)
     # set gpu ids
     if len(gpu_ids)>0:
         torch.cuda.set_device(gpu_ids[0])
@@ -264,6 +297,18 @@ if __name__ == '__main__':
                    ['train', 'val']}  # 8 workers may work faster
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 
+    #### loss and metric statistics ####
+    y_loss = {} # loss history
+    y_loss['train'] = []
+    y_loss['val'] = []
+    y_err = {}
+    y_err['train'] = []
+    y_err['val'] = []
+    x_epoch = []
+    fig = plt.figure()
+    ax0 = fig.add_subplot(121, title="loss")
+    ax1 = fig.add_subplot(122, title="top1err")
+
     #### load and train ####
     model_structure = PCB(opt.nclasses)
     model = load_network(model_structure)
@@ -271,14 +316,14 @@ if __name__ == '__main__':
     log_file = open(os.path.join(opt.model_dir, 'train.log'), 'w')
     criterion = nn.CrossEntropyLoss()
 
-    stage = 'RPP'
+    stage = 'rpp'
     model = model.convert_to_rpp()
     if use_gpu:
         model = model.cuda()
-    model = rpp_train(model, criterion, log_file, stage, 5)
+    model = rpp_train(model, criterion, log_file, stage, 10)
 
 
     stage = 'full'
-    full_train(model, criterion, log_file, stage, 10)
+    full_train(model, criterion, log_file, stage, 60)
 
     log_file.close()

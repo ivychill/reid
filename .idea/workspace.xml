@@ -2,13 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="6ec15b53-43a3-4309-a60f-b307b9046df7" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/main_test.py" afterPath="$PROJECT_DIR$/main_test.py" />
-      <change beforePath="$PROJECT_DIR$/pcb_rpptrain_log.txt" afterPath="$PROJECT_DIR$/pcb_rpptrain_log.txt" />
+      <change beforePath="$PROJECT_DIR$/main_train.py" afterPath="$PROJECT_DIR$/main_train.py" />
       <change beforePath="$PROJECT_DIR$/rerank_output.py" afterPath="$PROJECT_DIR$/rerank_output.py" />
       <change beforePath="$PROJECT_DIR$/rpp.py" afterPath="$PROJECT_DIR$/rpp.py" />
-      <change beforePath="$PROJECT_DIR$/test.py" afterPath="$PROJECT_DIR$/test.py" />
       <change beforePath="$PROJECT_DIR$/test.sh" afterPath="$PROJECT_DIR$/test.sh" />
       <change beforePath="$PROJECT_DIR$/train.sh" afterPath="$PROJECT_DIR$/train.sh" />
     </list>
@@ -24,8 +21,8 @@
       <file leaf-file-name="main_train.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main_train.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="172">
-              <caret line="352" column="0" lean-forward="false" selection-start-line="352" selection-start-column="0" selection-end-line="353" selection-end-column="31" />
+            <state relative-caret-position="212">
+              <caret line="65" column="41" lean-forward="false" selection-start-line="65" selection-start-column="37" selection-end-line="65" selection-end-column="41" />
               <folding>
                 <element signature="e#25#72#0" expanded="true" />
               </folding>
@@ -33,13 +30,35 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main_test.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="model.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/model.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="108">
+              <caret line="65" column="0" lean-forward="false" selection-start-line="65" selection-start-column="0" selection-end-line="65" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="main_test.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main_test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="208">
-              <caret line="44" column="79" lean-forward="false" selection-start-line="44" selection-start-column="79" selection-end-line="44" selection-end-column="79" />
+            <state relative-caret-position="381">
+              <caret line="227" column="26" lean-forward="false" selection-start-line="227" selection-start-column="26" selection-end-line="235" selection-end-column="76" />
               <folding>
                 <element signature="e#25#72#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="data_split.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/data_split.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-1080">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -48,40 +67,28 @@
       <file leaf-file-name="rpp.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/rpp.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="426">
-              <caret line="255" column="26" lean-forward="false" selection-start-line="255" selection-start-column="26" selection-end-line="255" selection-end-column="26" />
-              <folding>
-                <element signature="e#1#16#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="train.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/train.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="352">
-              <caret line="246" column="0" lean-forward="false" selection-start-line="246" selection-start-column="0" selection-end-line="247" selection-end-column="46" />
+            <state relative-caret-position="3396">
+              <caret line="326" column="51" lean-forward="false" selection-start-line="326" selection-start-column="51" selection-end-line="326" selection-end-column="51" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="rerank_output.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rerank_output.py">
+      <file leaf-file-name="test_market.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test_market.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="100">
-              <caret line="33" column="30" lean-forward="false" selection-start-line="33" selection-start-column="30" selection-end-line="33" selection-end-column="30" />
+            <state relative-caret-position="-1613">
+              <caret line="147" column="4" lean-forward="false" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="4" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="opts.yaml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/model/pcb_rpp/opts.yaml">
+      <file leaf-file-name="evaluate_gpu.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/evaluate_gpu.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+            <state relative-caret-position="38">
+              <caret line="31" column="4" lean-forward="false" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
               <folding />
             </state>
           </provider>
@@ -90,8 +97,8 @@
       <file leaf-file-name="train.sh" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/train.sh">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="482">
-              <caret line="70" column="23" lean-forward="false" selection-start-line="70" selection-start-column="14" selection-end-line="70" selection-end-column="23" />
+            <state relative-caret-position="235">
+              <caret line="69" column="24" lean-forward="false" selection-start-line="69" selection-start-column="14" selection-end-line="69" selection-end-column="24" />
               <folding />
             </state>
           </provider>
@@ -100,28 +107,8 @@
       <file leaf-file-name="test.sh" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test.sh">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="302">
-              <caret line="49" column="19" lean-forward="false" selection-start-line="49" selection-start-column="19" selection-end-line="49" selection-end-column="19" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="result.json" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/result/pcb_rpp/result.json">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="188">
-              <caret line="0" column="3426" lean-forward="false" selection-start-line="0" selection-start-column="3425" selection-end-line="0" selection-end-column="3426" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="result_rerank.json" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/result/pcb_rpp/result_rerank.json">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="188">
-              <caret line="0" column="3426" lean-forward="false" selection-start-line="0" selection-start-column="3425" selection-end-line="0" selection-end-column="3426" />
+            <state relative-caret-position="-22">
+              <caret line="57" column="0" lean-forward="false" selection-start-line="57" selection-start-column="0" selection-end-line="57" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -131,36 +118,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>model_structure</find>
-      <find>opts.yaml</find>
-      <find>log_file</find>
-      <find>save_dir</find>
-      <find>model_dir</find>
-      <find>nclasses</find>
-      <find>PCB_dense</find>
+      <find>lr_scheduler</find>
+      <find>fp16</find>
+      <find>nclassed</find>
       <find>rpp_train</find>
-      <find>f</find>
-      <find>dataset_sizes</find>
-      <find>inputs</find>
-      <find>image_datasets</find>
-      <find>use_gpu</find>
-      <find>class_names</find>
+      <find>save_network</find>
+      <find>y_loss</find>
+      <find>opts.yaml</find>
+      <find>id</find>
+      <find>Training complete</find>
+      <find>base_params</find>
       <find>which_epoch</find>
-      <find>cudnn</find>
-      <find>transform_val_list</find>
-      <find>erasing_p</find>
-      <find>train_all</find>
-      <find>--stage</find>
-      <find>Acc:</find>
-      <find>mkdir</find>
-      <find>result_dir</find>
-      <find>data_dir</find>
-      <find>PCB</find>
-      <find>load</find>
-      <find>stage</find>
+      <find>loss</find>
+      <find>convert_to_rpp</find>
+      <find>#### gpu ####</find>
+      <find>ClassBlock</find>
+      <find>softmax</find>
       <find>load_network</find>
-      <find>RPP</find>
-      <find>[</find>
+      <find>np</find>
+      <find>weight_decay</find>
+      <find>warm_up</find>
+      <find>train_model</find>
+      <find>optimizer</find>
+      <find>scheduler</find>
+      <find>batchsize</find>
+      <find>last_model_wts</find>
+      <find>triplet</find>
+      <find>triplet_loss</find>
+      <find>step_size</find>
+      <find>classifiers</find>
+      <find>grad</find>
     </findStrings>
     <replaceStrings>
       <replace>index_gallery</replace>
@@ -187,21 +174,22 @@
         <option value="$PROJECT_DIR$/model.py" />
         <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/output.py" />
-        <option value="$PROJECT_DIR$/main_train.py" />
         <option value="$PROJECT_DIR$/.gitignore" />
-        <option value="$PROJECT_DIR$/train.sh" />
-        <option value="$PROJECT_DIR$/rpp.py" />
-        <option value="$PROJECT_DIR$/rerank_output.py" />
-        <option value="$PROJECT_DIR$/main_test.py" />
         <option value="$PROJECT_DIR$/test.sh" />
+        <option value="$PROJECT_DIR$/train.sh" />
+        <option value="$PROJECT_DIR$/model/pcb_rpp/opts.yaml" />
+        <option value="$PROJECT_DIR$/main_test.py" />
+        <option value="$PROJECT_DIR$/rerank_output.py" />
+        <option value="$PROJECT_DIR$/main_train.py" />
+        <option value="$PROJECT_DIR$/rpp.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="65" />
-    <option name="y" value="52" />
-    <option name="width" value="1855" />
-    <option name="height" value="1028" />
+    <option name="x" value="111" />
+    <option name="y" value="129" />
+    <option name="width" value="1024" />
+    <option name="height" value="768" />
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -229,12 +217,12 @@
             <path>
               <item name="reid_rpp" type="b2602c69:ProjectViewProjectNode" />
               <item name="reid_rpp" type="462c0819:PsiDirectoryNode" />
-              <item name="result" type="462c0819:PsiDirectoryNode" />
+              <item name="model" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="reid_rpp" type="b2602c69:ProjectViewProjectNode" />
               <item name="reid_rpp" type="462c0819:PsiDirectoryNode" />
-              <item name="result" type="462c0819:PsiDirectoryNode" />
+              <item name="model" type="462c0819:PsiDirectoryNode" />
               <item name="pcb_rpp" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
@@ -246,7 +234,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../Person_reID_baseline_pytorch" />
+    <property name="last_opened_file_path" value="$USER_HOME$/lib/reid-strong-baseline" />
     <property name="two.files.diff.last.used.file" value="$PROJECT_DIR$/../../tmp/Person_reID_baseline_pytorch/train.py" />
   </component>
   <component name="RunDashboard">
@@ -284,7 +272,7 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18652292" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32924336" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2597137" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -305,41 +293,11 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main_test.py</url>
-          <line>2</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-      </breakpoints>
       <option name="time" value="3" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/test.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="738">
-          <caret line="41" column="28" lean-forward="false" selection-start-line="41" selection-start-column="28" selection-end-line="41" selection-end-column="28" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/train.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="954">
-          <caret line="53" column="26" lean-forward="false" selection-start-line="53" selection-start-column="26" selection-end-line="53" selection-end-column="26" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/lib/python3.5/dist-packages/torch/nn/init.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="208">
-          <caret line="295" column="4" lean-forward="false" selection-start-line="295" selection-start-column="4" selection-end-line="295" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/lib/python3/dist-packages/ufw/common.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="370">
@@ -376,6 +334,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -392,6 +351,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="498">
           <caret line="32" column="23" lean-forward="false" selection-start-line="32" selection-start-column="23" selection-end-line="32" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#15#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -399,6 +361,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="370">
           <caret line="39" column="74" lean-forward="false" selection-start-line="39" selection-start-column="45" selection-end-line="39" selection-end-column="74" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -435,35 +398,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/lib/python3.5/dist-packages/torch/nn/modules/pooling.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="424">
-          <caret line="552" column="8" lean-forward="false" selection-start-line="552" selection-start-column="8" selection-end-line="552" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/prepare_market.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="601">
           <caret line="72" column="38" lean-forward="false" selection-start-line="72" selection-start-column="38" selection-end-line="72" selection-end-column="38" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_market.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-232">
-          <caret line="147" column="4" lean-forward="false" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="4" />
-          <folding>
-            <element signature="e#25#72#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/evaluate_gpu.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="36">
-          <caret line="6" column="0" lean-forward="false" selection-start-line="6" selection-start-column="0" selection-end-line="95" selection-end-column="89" />
         </state>
       </provider>
     </entry>
@@ -486,34 +425,10 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/train_bak.py" />
-    <entry file="file://$PROJECT_DIR$/model/pcb_rpp/main_train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/lib/python3.5/shutil.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="316">
           <caret line="89" column="4" lean-forward="false" selection-start-line="89" selection-start-column="4" selection-end-line="89" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.PyCharmCE2017.3/system/python_stubs/-1247971764/builtins.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="316">
-          <caret line="509" column="4" lean-forward="false" selection-start-line="509" selection-start-column="4" selection-end-line="509" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/lib/python3.5/dist-packages/torchvision/models/resnet.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="316">
-          <caret line="179" column="4" lean-forward="false" selection-start-line="179" selection-start-column="4" selection-end-line="179" selection-end-column="4" />
           <folding />
         </state>
       </provider>
@@ -523,16 +438,6 @@
         <state relative-caret-position="46">
           <caret line="163" column="32" lean-forward="false" selection-start-line="163" selection-start-column="23" selection-end-line="163" selection-end-column="32" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/output.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="475">
-          <caret line="34" column="40" lean-forward="false" selection-start-line="34" selection-start-column="40" selection-end-line="34" selection-end-column="40" />
-          <folding>
-            <element signature="e#1#13#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -557,16 +462,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="504">
-          <caret line="63" column="0" lean-forward="false" selection-start-line="63" selection-start-column="0" selection-end-line="118" selection-end-column="35" />
-          <folding>
-            <element signature="e#25#72#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/lib/python3.5/dist-packages/torch/backends/cudnn/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -574,14 +469,6 @@
           <folding>
             <element signature="e#0#9#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="190">
-          <caret line="233" column="15" lean-forward="false" selection-start-line="233" selection-start-column="6" selection-end-line="233" selection-end-column="15" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -593,72 +480,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/rpp.py">
+    <entry file="file://$PROJECT_DIR$/result/pcb_rpp/result_rerank.json">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="426">
-          <caret line="255" column="26" lean-forward="false" selection-start-line="255" selection-start-column="26" selection-end-line="255" selection-end-column="26" />
-          <folding>
-            <element signature="e#1#16#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/train.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="482">
-          <caret line="70" column="23" lean-forward="false" selection-start-line="70" selection-start-column="14" selection-end-line="70" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/main_train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="172">
-          <caret line="352" column="0" lean-forward="false" selection-start-line="352" selection-start-column="0" selection-end-line="353" selection-end-column="31" />
-          <folding>
-            <element signature="e#25#72#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="352">
-          <caret line="246" column="0" lean-forward="false" selection-start-line="246" selection-start-column="0" selection-end-line="247" selection-end-column="46" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/model/pcb_rpp/opts.yaml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/rerank_output.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="100">
-          <caret line="33" column="30" lean-forward="false" selection-start-line="33" selection-start-column="30" selection-end-line="33" selection-end-column="30" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/main_test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="208">
-          <caret line="44" column="79" lean-forward="false" selection-start-line="44" selection-start-column="79" selection-end-line="44" selection-end-column="79" />
-          <folding>
-            <element signature="e#25#72#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="302">
-          <caret line="49" column="19" lean-forward="false" selection-start-line="49" selection-start-column="19" selection-end-line="49" selection-end-column="19" />
+        <state relative-caret-position="188">
+          <caret line="0" column="3426" lean-forward="false" selection-start-line="0" selection-start-column="3425" selection-end-line="0" selection-end-column="3426" />
           <folding />
         </state>
       </provider>
@@ -671,11 +496,173 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/result/pcb_rpp/result_rerank.json">
+    <entry file="file://$PROJECT_DIR$/random_erasing.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="188">
-          <caret line="0" column="3426" lean-forward="false" selection-start-line="0" selection-start-column="3425" selection-end-line="0" selection-end-column="3426" />
+        <state relative-caret-position="208">
+          <caret line="22" column="8" lean-forward="false" selection-start-line="22" selection-start-column="8" selection-end-line="22" selection-end-column="8" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/model/pcb_rpp/opts.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="198">
+          <caret line="11" column="14" lean-forward="false" selection-start-line="11" selection-start-column="14" selection-end-line="11" selection-end-column="14" />
+          <folding>
+            <marker date="1573043079410" expanded="true" signature="151:154" ph="0.05" />
+            <marker date="1573043079410" expanded="true" signature="175:182" ph="pcb_rpp" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharmCE2017.3/system/python_stubs/-1247971764/builtins.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="208">
+          <caret line="224" column="4" lean-forward="false" selection-start-line="224" selection-start-column="4" selection-end-line="224" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/output.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="504">
+          <caret line="31" column="0" lean-forward="false" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/model/pcb_rpp/main_train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="192">
+          <caret line="386" column="4" lean-forward="false" selection-start-line="386" selection-start-column="4" selection-end-line="386" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/lib/python3.5/dist-packages/torch/nn/modules/pooling.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="208">
+          <caret line="971" column="6" lean-forward="false" selection-start-line="971" selection-start-column="6" selection-end-line="971" selection-end-column="6" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="493">
+          <caret line="250" column="16" lean-forward="false" selection-start-line="250" selection-start-column="16" selection-end-line="250" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rerank_output.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="23" column="8" lean-forward="false" selection-start-line="23" selection-start-column="8" selection-end-line="23" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#15#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="190">
+          <caret line="330" column="24" lean-forward="false" selection-start-line="330" selection-start-column="12" selection-end-line="330" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/train.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="235">
+          <caret line="69" column="24" lean-forward="false" selection-start-line="69" selection-start-column="14" selection-end-line="69" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-22">
+          <caret line="57" column="0" lean-forward="false" selection-start-line="57" selection-start-column="0" selection-end-line="57" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_market.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1613">
+          <caret line="147" column="4" lean-forward="false" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/evaluate_gpu.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="38">
+          <caret line="31" column="4" lean-forward="false" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rpp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3396">
+          <caret line="326" column="51" lean-forward="false" selection-start-line="326" selection-start-column="51" selection-end-line="326" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data_split.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1080">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/lib/python3.5/dist-packages/torchvision/models/resnet.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="212">
+          <caret line="18" column="39" lean-forward="false" selection-start-line="18" selection-start-column="39" selection-end-line="18" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="108">
+          <caret line="65" column="0" lean-forward="false" selection-start-line="65" selection-start-column="0" selection-end-line="65" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main_train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="212">
+          <caret line="65" column="41" lean-forward="false" selection-start-line="65" selection-start-column="37" selection-end-line="65" selection-end-column="41" />
+          <folding>
+            <element signature="e#25#72#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/model/pcb_rpp/train.log">
+      <provider selected="true" editor-type-id="LogFileEditorProvider">
+        <state relative-caret-position="280">
+          <caret line="111" column="26" lean-forward="false" selection-start-line="111" selection-start-column="26" selection-end-line="111" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="381">
+          <caret line="227" column="26" lean-forward="false" selection-start-line="227" selection-start-column="26" selection-end-line="235" selection-end-column="76" />
+          <folding>
+            <element signature="e#25#72#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

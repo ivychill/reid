@@ -43,12 +43,25 @@ case $1 in
             --ms 1,0.9
         ;;
 
-    pcb_rpp)
+    pcb_rpp_pcb)
         python main_test.py \
             --gpu_ids 1 \
             --PCB densenet \
-            --RPP \
+            --stage pcb \
+            --data_dir ../dataset/match/pytorch \
+            --model_dir ./model/pcb_rpp \
+            --result_dir ./result/pcb_rpp \
+            --batchsize 256 \
+            --which_epoch last \
+            --ms 1,0.9
+        ;;
+
+    pcb_rpp_full)
+        python main_test.py \
+            --gpu_ids 1 \
+            --PCB densenet \
             --stage full \
+            --RPP \
             --data_dir ../dataset/match/pytorch \
             --model_dir ./model/pcb_rpp \
             --result_dir ./result/pcb_rpp \

@@ -43,7 +43,7 @@ case $1 in
             --warm_epoch 5 \
             --stride 1 \
             --erasing_p 0.5 \
-            --lr 0.01 \
+            --lr 0.02 \
             --data_dir ../dataset/match/pytorch
         ;;
 
@@ -57,6 +57,7 @@ case $1 in
             --warm_epoch 5 \
             --stride 1 \
             --erasing_p 0.5 \
+            --lr 0.02 \
             --data_dir ../dataset/match/pytorch
         ;;
 
@@ -67,8 +68,9 @@ case $1 in
             --model_dir ./model/pcb_rpp \
             --PCB densenet \
             --warm_epoch 5 \
-            --stride 1 \
             --erasing_p 0.5 \
+            --lr 0.02 \
+            --which_epoch 119 \
             --data_dir ../dataset/match/pytorch
         ;;
 
