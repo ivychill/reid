@@ -12,59 +12,27 @@ case $1 in
         ;;
 
     pcb)
-        python test.py \
-            --gpu_ids 2 \
-            --name PCB \
-            --PCB \
-            --test_dir ../dataset/match/pytorch \
-            --batchsize 32 \
-            --which_epoch 59
-        ;;
-
-    pcb_ms)
-        python test.py \
-            --gpu_ids 2 \
-            --name pcb_ms \
-            --PCB \
-            --test_dir ../dataset/match/pytorch \
-            --batchsize 32 \
-            --which_epoch 59 \
-            --ms 1,0.9
-        ;;
-
-    pcb_trick)
-        python test.py \
-            --gpu_ids 1 \
-            --name pcb_trick \
-            --PCB \
-            --test_dir ../dataset/match/pytorch \
-            --batchsize 256 \
-            --which_epoch 119 \
-            --ms 1,0.9
-        ;;
-
-    pcb_rpp_pcb)
         python main_test.py \
-            --gpu_ids 1 \
+            --gpu_ids 0 \
             --PCB densenet \
             --stage pcb \
             --data_dir ../dataset/match/pytorch \
-            --model_dir ./model/pcb_rpp \
-            --result_dir ./result/pcb_rpp \
+            --model_dir ./model/main \
+            --result_dir ./result/main \
             --batchsize 256 \
             --which_epoch last \
             --ms 1,0.9
         ;;
 
-    pcb_rpp_full)
+    rpp)
         python main_test.py \
-            --gpu_ids 1 \
+            --gpu_ids 0 \
             --PCB densenet \
             --stage full \
             --RPP \
             --data_dir ../dataset/match/pytorch \
-            --model_dir ./model/pcb_rpp \
-            --result_dir ./result/pcb_rpp \
+            --model_dir ./model/main \
+            --result_dir ./result/main \
             --batchsize 256 \
             --which_epoch last \
             --ms 1,0.9
@@ -72,8 +40,8 @@ case $1 in
 
     rerank)
         python rerank_output.py \
-            --model_dir ./model/pcb_rpp \
-            --result_dir ./result/pcb_rpp \
+            --model_dir ./model/main \
+            --result_dir ./result/main \
             --data_dir ../dataset/match/pytorch
         ;;
 

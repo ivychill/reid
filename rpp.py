@@ -24,6 +24,8 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
     # best_model_wts = model.state_dict()
     # best_acc = 0.0
     last_model_wts = model.state_dict()
+    warm_up = 0.1  # We start from the 0.1*lrRate
+    warm_iteration = round(dataset_sizes['train'] / opt.batchsize) * opt.warm_epoch  # first 5 epoch
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -43,14 +45,9 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
             for data in dataloaders[phase]:
                 # get the inputs
                 inputs, labels = data
-                now_batch_size, c, h, w = inputs.shape
-                if now_batch_size < opt.batchsize:  # skip the last batch
-                    continue
-                # print(inputs.shape)
-                # wrap them in Variable
                 if use_gpu:
-                    inputs = Variable(inputs.cuda().detach())
-                    labels = Variable(labels.cuda().detach())
+                    inputs = Variable(inputs.cuda())
+                    labels = Variable(labels.cuda())
                 else:
                     inputs, labels = Variable(inputs), Variable(labels)
 
@@ -81,6 +78,11 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                     for i in range(num_part - 1):
                         loss += criterion(part[i + 1], labels)
 
+                # backward + optimize only if in training phase
+                if epoch < opt.warm_epoch and phase == 'train':
+                    warm_up = min(1.0, warm_up + 0.9 / warm_iteration)
+                    loss *= warm_up
+
                 if phase == 'train':
                     if opt.fp16:  # we use optimier to backward loss
                         with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -92,9 +94,9 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                 # statistics
                 version = torch.__version__
                 if int(version[0]) > 0 or int(version[2]) > 3:  # for the new version like 0.4.0, 0.5.0 and 1.0.0
-                    running_loss += loss.item() * now_batch_size
+                    running_loss += loss.item() * inputs.size(0)
                 else:  # for the old version like 0.3.0 and 0.3.1
-                    running_loss += loss.data[0] * now_batch_size
+                    running_loss += loss.data[0] * inputs.size(0)
                 running_corrects += float(torch.sum(preds == labels.data))
 
             epoch_loss = running_loss / dataset_sizes[phase]
@@ -229,6 +231,11 @@ if __name__ == '__main__':
     else:
         opt.nclasses = 751
 
+    ####  setSeed ####
+    seed = 0
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
     #### gpu ####
     str_ids = opt.gpu_ids.split(',')
     gpu_ids = []
@@ -239,7 +246,6 @@ if __name__ == '__main__':
     # set gpu ids
     if len(gpu_ids)>0:
         torch.cuda.set_device(gpu_ids[0])
-        cudnn.benchmark = True
     use_gpu = torch.cuda.is_available()
 
     #### load data ####

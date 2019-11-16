@@ -5,32 +5,43 @@ from torchvision import models
 from torch.autograd import Variable
 import pretrainedmodels
 
+
 ######################################################################
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
-    # print(classname)
-    if classname.find('Conv') != -1:
-        init.kaiming_normal_(m.weight.data, a=0, mode='fan_in') # For old pytorch, you may use kaiming_normal.
+    if classname.find('Conv2d') != -1:
+        init.kaiming_normal_(m.weight.data, mode='fan_out', nonlinearity='relu')
     elif classname.find('Linear') != -1:
-        init.kaiming_normal_(m.weight.data, a=0, mode='fan_out')
-        init.constant_(m.bias.data, 0.0)
+        init.kaiming_normal(m.weight.data, a=0, mode='fan_out')
+        init.constant(m.bias.data, 0.0)
     elif classname.find('BatchNorm1d') != -1:
-        init.normal_(m.weight.data, 1.0, 0.02)
-        init.constant_(m.bias.data, 0.0)
+        init.normal(m.weight.data, 1.0, 0.02)
+        init.constant(m.bias.data, 0.0)
+    elif classname.find('BatchNorm2d') != -1:
+        init.constant(m.weight.data, 1)
+        init.constant(m.bias.data, 0)
+
 
 def weights_init_classifier(m):
     classname = m.__class__.__name__
     if classname.find('Linear') != -1:
-        init.normal_(m.weight.data, std=0.001)
-        init.constant_(m.bias.data, 0.0)
+        init.normal(m.weight.data, std=0.001)
+        init.constant(m.bias.data, 0.0)
+
 
 # Defines the new fc layer and classification layer
 # |--Linear--|--bn--|--relu--|--Linear--|
 class ClassBlock(nn.Module):
-    def __init__(self, input_dim, class_num, droprate, relu=False, bnorm=True, num_bottleneck=512, linear=True, return_f = False):
+    # def __init__(self, input_dim, class_num, relu=True, num_bottleneck=512):
+    def __init__(self, input_dim, class_num, droprate=0, relu=False, bnorm=True, num_bottleneck=512, linear=True):
         super(ClassBlock, self).__init__()
-        self.return_f = return_f
         add_block = []
+
+        # add_block += [nn.Conv2d(input_dim, num_bottleneck, kernel_size=1, bias=False)]
+        # add_block += [nn.BatchNorm2d(num_bottleneck)]
+        # if relu:
+        #     #add_block += [nn.LeakyReLU(0.1)]
+        #     add_block += [nn.ReLU(inplace=True)]
         if linear:
             add_block += [nn.Linear(input_dim, num_bottleneck)]
         else:
@@ -51,15 +62,12 @@ class ClassBlock(nn.Module):
 
         self.add_block = add_block
         self.classifier = classifier
+
     def forward(self, x):
         x = self.add_block(x)
-        if self.return_f:
-            f = x
-            x = self.classifier(x)
-            return x,f
-        else:
-            x = self.classifier(x)
-            return x
+        x = torch.squeeze(x)
+        x = self.classifier(x)
+        return x
 
 # Define the ResNet50-based Model
 class ft_net(nn.Module):
@@ -98,7 +106,7 @@ class ft_net_dense(nn.Module):
         model_ft.features.avgpool = nn.AdaptiveAvgPool2d((1,1))
         model_ft.fc = nn.Sequential()
         self.model = model_ft
-        # For DenseNet, the feature dim is 1024 
+        # For DenseNet, the feature dim is 1024
         self.classifier = ClassBlock(1024, class_num, droprate)
 
     def forward(self, x):
@@ -111,8 +119,8 @@ class ft_net_dense(nn.Module):
 class ft_net_NAS(nn.Module):
 
     def __init__(self, class_num, droprate=0.5):
-        super().__init__()  
-        model_name = 'nasnetalarge' 
+        super().__init__()
+        model_name = 'nasnetalarge'
         # pip install pretrainedmodels
         model_ft = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet')
         model_ft.avg_pool = nn.AdaptiveAvgPool2d((1,1))
@@ -128,7 +136,7 @@ class ft_net_NAS(nn.Module):
         x = x.view(x.size(0), x.size(1))
         x = self.classifier(x)
         return x
-    
+
 # Define the ResNet50-based Model (Middle-Concat)
 # In the spirit of "The Devil is in the Middle: Exploiting Mid-level Representations for Cross-Domain Instance Matching." Yu, Qian, et al. arXiv:1711.08106 (2017).
 class ft_net_middle(nn.Module):
@@ -159,42 +167,76 @@ class ft_net_middle(nn.Module):
         x = self.classifier(x)
         return x
 
+# Define the RPP layers
+class RPP(nn.Module):
+    def __init__(self):
+        super(RPP, self).__init__()
+        self.part = 6
+        add_block = []
+        add_block += [nn.Conv2d(1024, 6, kernel_size=1, bias=False)]
+        add_block = nn.Sequential(*add_block)
+        add_block.apply(weights_init_kaiming)
+
+        norm_block = []
+        norm_block += [nn.BatchNorm2d(1024)]
+        norm_block += [nn.ReLU(inplace=True)]
+        # norm_block += [nn.LeakyReLU(0.1, inplace=True)]
+        norm_block = nn.Sequential(*norm_block)
+        norm_block.apply(weights_init_kaiming)
+
+        self.add_block = add_block
+        self.norm_block = norm_block
+        self.softmax = nn.Softmax(dim=1)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+
+    def forward(self, x):
+        w = self.add_block(x)
+        p = self.softmax(w)
+        y = []
+        for i in range(self.part):
+            p_i = p[:, i, :, :]
+            p_i = torch.unsqueeze(p_i, 1)
+            y_i = torch.mul(x, p_i)
+            y_i = self.norm_block(y_i)
+            y_i = self.avgpool(y_i)
+            y.append(y_i)
+
+        f = torch.cat(y, 2)
+        return f
+
+
 # Part Model proposed in Yifan Sun etal. (2018)
 class PCB(nn.Module):
-    def __init__(self, class_num ):
+    def __init__(self, class_num):
         super(PCB, self).__init__()
 
-        self.part = 6 # We cut the pool5 to 6 parts
-        model_ft = models.resnet50(pretrained=True)
-        self.model = model_ft
-        self.avgpool = nn.AdaptiveAvgPool2d((self.part,1))
-        self.dropout = nn.Dropout(p=0.5)
+        self.part = 6
+        # resnet50
+        resnet = models.resnet50(pretrained=True)
         # remove the final downsample
-        self.model.layer4[0].downsample[0].stride = (1,1)
-        self.model.layer4[0].conv2.stride = (1,1)
+        resnet.layer4[0].downsample[0].stride = (1, 1)
+        resnet.layer4[0].conv2.stride = (1, 1)
+        modules = list(resnet.children())[:-2]
+        self.backbone = nn.Sequential(*modules)
+        self.avgpool = nn.AdaptiveAvgPool2d((self.part, 1))
+        self.dropout = nn.Dropout(p=0.5)
 
         # define 6 classifiers
         self.classifiers = nn.ModuleList()
         for i in range(self.part):
-            self.classifiers.append(ClassBlock(2048, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256))
+            self.classifiers.append(ClassBlock(2048, class_num, True, 256))
 
     def forward(self, x):
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
-        
-        x = self.model.layer1(x)
-        x = self.model.layer2(x)
-        x = self.model.layer3(x)
-        x = self.model.layer4(x)
+        x = self.backbone(x)
         x = self.avgpool(x)
         x = self.dropout(x)
         part = {}
         predict = {}
         # get six part feature batchsize*2048*6
         for i in range(self.part):
-            part[i] = torch.squeeze(x[:, :, i])
+            part[i] = x[:, :, i, :]
+            part[i] = torch.unsqueeze(part[i], 3)
             # print part[i].shape
             predict[i] = self.classifiers[i](part[i])
 
@@ -207,29 +249,37 @@ class PCB(nn.Module):
         self.avgpool = RPP()
         return self
 
+
 class PCB_test(nn.Module):
-    def __init__(self,model):
-        super(PCB_test,self).__init__()
+    def __init__(self, model, featrue_H=False):
+        super(PCB_test, self).__init__()
         self.part = 6
-        self.model = model.model
-        self.avgpool = nn.AdaptiveAvgPool2d((self.part,1))
-        # remove the final downsample
-        self.model.layer4[0].downsample[0].stride = (1,1)
-        self.model.layer4[0].conv2.stride = (1,1)
+        self.featrue_H = featrue_H
+        self.backbone = model.backbone
+        self.avgpool = model.avgpool
+        self.classifiers = nn.ModuleList()
+        for i in range(self.part):
+            self.classifiers.append(model.classifiers[i].add_block)
 
     def forward(self, x):
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
-
-        x = self.model.layer1(x)
-        x = self.model.layer2(x)
-        x = self.model.layer3(x)
-        x = self.model.layer4(x)
+        x = self.backbone(x)
         x = self.avgpool(x)
-        y = x.view(x.size(0),x.size(1),x.size(2))
-        return y
+
+        if self.featrue_H:
+            part = {}
+            predict = {}
+            # get six part feature batchsize*2048*6
+            for i in range(self.part):
+                part[i] = x[:, :, i, :]
+                part[i] = torch.unsqueeze(part[i], 3)
+                predict[i] = self.classifiers[i](part[i])
+
+            y = []
+            for i in range(self.part):
+                y.append(predict[i])
+            x = torch.cat(y, 2)
+        f = x.view(x.size(0), x.size(1), x.size(2))
+        return f
 
 class PCB_dense(nn.Module):
     def __init__(self, class_num):
@@ -280,55 +330,11 @@ class PCB_dense_test(nn.Module):
         y = x.view(x.size(0),x.size(1),x.size(2))
         return y
 
-# Define the RPP layers
-class RPP(nn.Module):
-    def __init__(self):
-        super(RPP, self).__init__()
-        self.part = 6
-        add_block = []
-        add_block += [nn.Conv2d(1024, 6, kernel_size=1, bias=False)]
-        add_block = nn.Sequential(*add_block)
-        add_block.apply(weights_init_kaiming)
-
-        norm_block = []
-        norm_block += [nn.BatchNorm2d(1024)]
-        norm_block += [nn.ReLU(inplace=True)]
-        # norm_block += [nn.LeakyReLU(0.1, inplace=True)]
-        norm_block = nn.Sequential(*norm_block)
-        norm_block.apply(weights_init_kaiming)
-
-        self.add_block = add_block
-        self.norm_block = norm_block
-        self.softmax = nn.Softmax(dim=1)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-
-    def forward(self, x):
-        w = self.add_block(x)
-        p = self.softmax(w)
-        y = []
-        for i in range(self.part):
-            p_i = p[:, i, :, :]
-            p_i = torch.unsqueeze(p_i, 1)
-            y_i = torch.mul(x, p_i)
-            y_i = self.norm_block(y_i)
-            y_i = self.avgpool(y_i)
-            y.append(y_i)
-
-        f = torch.cat(y, 2)
-        return f
-
-'''
 # debug model structure
-# Run this code with:
-python model.py
-'''
 if __name__ == '__main__':
-# Here I left a simple forward function.
-# Test the model, before you train it. 
-    net = ft_net(751, stride=1)
-    net.classifier = nn.Sequential()
+    net = PCB(751)
+    net = net.convert_to_rpp()
     print(net)
-    input = Variable(torch.FloatTensor(8, 3, 256, 128))
+    input = Variable(torch.FloatTensor(8, 3, 7, 7))
     output = net(input)
-    print('net output size:')
-    print(output.shape)
+    # print(output[0].shape)

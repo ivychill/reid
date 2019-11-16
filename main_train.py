@@ -9,7 +9,6 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 from torchvision import datasets, transforms
-import torch.backends.cudnn as cudnn
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -52,14 +51,9 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
             for data in dataloaders[phase]:
                 # get the inputs
                 inputs, labels = data
-                now_batch_size,c,h,w = inputs.shape
-                if now_batch_size<opt.batchsize: # skip the last batch
-                    continue
-                #print(inputs.shape)
-                # wrap them in Variable
                 if use_gpu:
-                    inputs = Variable(inputs.cuda().detach())
-                    labels = Variable(labels.cuda().detach())
+                    inputs = Variable(inputs.cuda())
+                    labels = Variable(labels.cuda())
                 else:
                     inputs, labels = Variable(inputs), Variable(labels)
 
@@ -83,7 +77,7 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                     for i in range(num_part):
                         part[i] = outputs[i]
 
-                    score = sm(part[0]) + sm(part[1]) +sm(part[2]) + sm(part[3]) +sm(part[4]) +sm(part[5])
+                    score = sm(part[0]) + sm(part[1]) + sm(part[2]) + sm(part[3]) + sm(part[4]) + sm(part[5])
                     _, preds = torch.max(score.data, 1)
 
                     loss = criterion(part[0], labels)
@@ -91,7 +85,7 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                         loss += criterion(part[i+1], labels)
 
                 # backward + optimize only if in training phase
-                if epoch<opt.warm_epoch and phase == 'train': 
+                if epoch < opt.warm_epoch and phase == 'train':
                     warm_up = min(1.0, warm_up + 0.9 / warm_iteration)
                     loss *= warm_up
 
@@ -106,9 +100,9 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                 # statistics
                 version = torch.__version__
                 if int(version[0])>0 or int(version[2]) > 3: # for the new version like 0.4.0, 0.5.0 and 1.0.0
-                    running_loss += loss.item() * now_batch_size
+                    running_loss += loss.item() * inputs.size(0)
                 else :  # for the old version like 0.3.0 and 0.3.1
-                    running_loss += loss.data[0] * now_batch_size
+                    running_loss += loss.data[0] * inputs.size(0)
                 running_corrects += float(torch.sum(preds == labels.data))
 
             epoch_loss = running_loss / dataset_sizes[phase]
@@ -170,7 +164,6 @@ def pcb_train(model, criterion, log_file, stage, num_epoch):
 # Setp 2&3: train the rpp layers
 # According to original paper, we set the learning rate at 0.01 for rpp layers.
 def rpp_train(model, criterion, log_file, stage, num_epoch):
-
     # ignored_params = list(map(id, get_net(opt, model).avgpool.parameters()))
     # base_params = filter(lambda p: id(p) not in ignored_params, get_net(opt, model).parameters())
     # optimizer_ft = optim.SGD([
@@ -273,8 +266,8 @@ if __name__ == '__main__':
     seed = 0
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
 
     #### gpu ####
     str_ids = opt.gpu_ids.split(',')
@@ -285,7 +278,6 @@ if __name__ == '__main__':
             gpu_ids.append(gid)
     if len(gpu_ids)>0:
         torch.cuda.set_device(gpu_ids[0])
-        cudnn.benchmark = True
     use_gpu = torch.cuda.is_available()
 
     #### Load Data ####
@@ -318,11 +310,11 @@ if __name__ == '__main__':
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ]
 
-    if opt.erasing_p>0:
-        transform_train_list = transform_train_list +  [RandomErasing(probability = opt.erasing_p, mean=[0.0, 0.0, 0.0])]
-
-    if opt.color_jitter:
-        transform_train_list = [transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0)] + transform_train_list
+    # if opt.erasing_p>0:
+    #     transform_train_list = transform_train_list +  [RandomErasing(probability = opt.erasing_p, mean=[0.0, 0.0, 0.0])]
+    #
+    # if opt.color_jitter:
+    #     transform_train_list = [transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0)] + transform_train_list
 
     print(transform_train_list)
     data_transforms = {
@@ -386,6 +378,7 @@ if __name__ == '__main__':
     if use_gpu:
         model = model.cuda()
 
+    opt.warm_epoch = 5
     criterion = nn.CrossEntropyLoss()
     model = pcb_train(model, criterion, log_file, stage, 120)
 
@@ -395,10 +388,12 @@ if __name__ == '__main__':
         model = model.convert_to_rpp()
         if use_gpu:
             model = model.cuda()
-        model = rpp_train(model, criterion, log_file, stage, 20)
+        opt.warm_epoch = 0
+        model = rpp_train(model, criterion, log_file, stage, 10)
 
         # step4: whole net training #
         stage = 'full'
+        opt.warm_epoch = 0
         full_train(model, criterion, log_file, stage, 20)
 
     log_file.close()
