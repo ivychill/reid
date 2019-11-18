@@ -26,6 +26,7 @@ import random
 import numpy as np
 from shutil import copyfile
 from log import *
+from util import *
 
 
 def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epochs=25):

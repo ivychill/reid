@@ -19,7 +19,7 @@ def save_network(opt, network, epoch_label, stage):
     save_path = os.path.join(save_sub_dir, save_filename)
     torch.save(network.cpu().state_dict(), save_path)
     if torch.cuda.is_available():
-        network.cuda(gpu_ids[0])
+        network.cuda(opt.gids[0])
 
 def fliplr(img):
     '''flip horizontal'''

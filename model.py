@@ -312,6 +312,7 @@ class PCB_dense(nn.Module):
         y = []
         for i in range(self.part):
             y.append(predict[i])
+
         return y
 
     def convert_to_rpp(self):
