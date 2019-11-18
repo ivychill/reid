@@ -3,14 +3,14 @@ import os,sys
 import shutil
 
 
-def writeDataToDir(data_dic,img_source_dir,img_tar_dir,type_):
+def writeDataToDir(data_dic,img_source_dir,img_target_dir,type_):
     dataList = dataDicToDdataList(data_dic)
     count = 0
-    os.makedirs(img_tar_dir,exist_ok=True)
-    save_txt = os.path.join(img_tar_dir,type_+'.txt')
+    os.makedirs(img_target_dir,exist_ok=True)
+    save_txt = os.path.join(img_target_dir,type_+'.txt')
     with open(save_txt,'w') as f:
-        if os.path.exists(os.path.join(img_tar_dir,type_)):
-            shutil.rmtree(os.path.join(img_tar_dir,type_))
+        if os.path.exists(os.path.join(img_target_dir,type_)):
+            shutil.rmtree(os.path.join(img_target_dir,type_))
         for data in dataList:
             img_pth_r, ind = data
             _, img_name = os.path.split(img_pth_r)
@@ -18,7 +18,7 @@ def writeDataToDir(data_dic,img_source_dir,img_tar_dir,type_):
             f.write(msg)
             count +=1
             img_pth_source = os.path.join(img_source_dir,img_pth_r)
-            img_pth_dir = os.path.join(img_tar_dir,type_,str(ind))
+            img_pth_dir = os.path.join(img_target_dir,type_,str(ind))
             os.makedirs(img_pth_dir,exist_ok=True)
             shutil.copy(img_pth_source,os.path.join(img_pth_dir,img_name))
 
@@ -58,7 +58,7 @@ def printDataDicInfo(data_all):
 def splitQueryDataGallayrData(data_all_dic,skip=1,max_len=300,ratios=0.15,remain_skip=False):
     # 从包含所有数据的字典{pid:[img_pth1,img_pth2,..],pid2:[img_pth1,img_pth2..]}的数据中
     # 分离出，如果数据量小于skip则不抽取，否则至少抽取一个。
-    gallary_data = []
+    gallery_data = []
     query_data = []
     remain_data = []
     all_inds = data_all_dic.keys()
@@ -79,9 +79,9 @@ def splitQueryDataGallayrData(data_all_dic,skip=1,max_len=300,ratios=0.15,remain
             if i in rand_inds:
                 query_data.append((img_pth, ind))
             else:
-                gallary_data.append((img_pth, ind))
+                gallery_data.append((img_pth, ind))
     print('query data len:{},remain data len:{}'.format(len(query_data),len(remain_data)))
-    return query_data,gallary_data,remain_data
+    return query_data,gallery_data,remain_data
 
 def selectDataFromDataDic(inds,data_dic):
     data_select,data_last = {},{}
@@ -130,14 +130,14 @@ def splitTrainValid(data_all_dic,ratio,skip=1,max_len=300):
     print('train data len:{},valid data len:{}'.format(len(train_data),len(valid_data)))
     return train_data,valid_data
 
-def splitQueryGallayr(valid_dir,ratio,save_dir):
-    # 从验证集文件夹中筛选部分数据做querry，gallery
-    query_dir = os.path.join(save_dir, 'query')
-    gallary_dir = os.path.join(save_dir, 'query')
+def splitQueryGallery(valid_dir,ratio,save_dir):
+    # 从验证集文件夹中筛选部分数据做query，gallery
+    query_dir = os.path.join(save_dir, 'valid_query')
+    gallery_dir = os.path.join(save_dir, 'valid_gallery')
     if os.path.exists(query_dir):
         shutil.rmtree(query_dir)
-    if os.path.exists(gallary_dir):
-        shutil.rmtree(gallary_dir)
+    if os.path.exists(gallery_dir):
+        shutil.rmtree(gallery_dir)
 
     img_dirs = [os.path.join(valid_dir,d) for d in os.listdir(valid_dir)]
     for img_dir in img_dirs:
@@ -148,14 +148,14 @@ def splitQueryGallayr(valid_dir,ratio,save_dir):
         query_inds_sel = np.random.randint(0, len(img_pths), rand_num)
         for ind in range(len(img_pths)):
             if ind in query_inds_sel:
-                type_ = 'query'
+                type_ = 'valid_query'
             else:
-                type_ = 'gallary'
+                type_ = 'valid_gallery'
             path_info = img_pths[ind].split('/')
             pid_str ,img_name = path_info[-2:]
             os.makedirs(os.path.join(save_dir,type_,pid_str),exist_ok=True)
-            img_tar_dir_ = os.path.join(save_dir, type_, pid_str, img_name)
-            shutil.copy(img_pths[ind],img_tar_dir_)
+            img_target_dir_ = os.path.join(save_dir, type_, pid_str, img_name)
+            shutil.copy(img_pths[ind],img_target_dir_)
 
 
 if __name__ == "__main__":
@@ -163,21 +163,23 @@ if __name__ == "__main__":
     # 先划分训练集与测试集，测试集中不能含有少于N个的目标，集合目标最多M个
     # 从验证集中抽出一部分目标分别做query与gallery
     # np.random.seed(4)
-    np.random.seed(6)
+    seed = 0
+    np.random.seed(seed)
 
-    train_all_txt = '/usr/zll/person_reid/data/sz_reid/sz_reid_round1/train_list.txt' # 原始的数据txt
-    img_source_dir = '/usr/zll/person_reid/data/sz_reid/sz_reid_round1' # 图片路径
-    img_tar_dir = '/usr/zll/person_reid/data/sz_reid_xz2'  # 划分后图片存放路径
+    base_dir = '/home/kcadmin/user/fengchen/tmp/match'
+    train_all_txt = os.path.join(base_dir, 'train_set', 'train_list.txt')   # 原始的数据txt
+    img_source_dir = os.path.join(base_dir, 'train_set') # 图片路径
+    img_target_dir = os.path.join(base_dir, 'split') # 划分后图片存放路径
 
 
     ratio = 0.1 # 验证集比例
     data_all_dic = getDataFromTxt(train_all_txt)
     # skip表示低于多少张不会做验证集，max_len表示过多的图片，只选max_len张。
     train_data_dic, valid_data_dic = splitTrainValid(data_all_dic, ratio, skip=1, max_len=200)
-    writeDataToDir(train_data_dic,img_source_dir,img_tar_dir,type_='train')
-    writeDataToDir(valid_data_dic,img_source_dir,img_tar_dir,type_='valid')
+    writeDataToDir(train_data_dic,img_source_dir,img_target_dir,type_='train')
+    writeDataToDir(valid_data_dic,img_source_dir,img_target_dir,type_='valid')
 
     # 将验证集划分为query 和gallery
-    valid_dir = '/usr/zll/person_reid/data/sz_reid_xz/valid'
-    splitQueryGallayr(valid_dir, 0.2, img_tar_dir)
+    valid_dir = '/home/kcadmin/user/fengchen/tmp/match/split/valid'
+    splitQueryGallery(valid_dir, 0.2, img_target_dir)
     print('finish!')

@@ -287,6 +287,7 @@ class PCB_dense(nn.Module):
 
         self.part = 6  # We cut the pool5 to 6 parts
         model_ft = models.densenet121(pretrained=True)
+        # TODO: stride 1
         self.model = model_ft
         self.avgpool = nn.AdaptiveAvgPool2d((self.part, 1))
         self.dropout = nn.Dropout(p=0.5)
@@ -299,14 +300,14 @@ class PCB_dense(nn.Module):
     def forward(self, x):
         x = self.model.features(x)
         x = self.avgpool(x)
-        x = self.dropout(x)
+        x = self.dropout(x)     # torch.Size([32, 1024, 6, 1]),
         part = {}
         predict = {}
         # get six part feature batchsize*2048*6
         for i in range(self.part):
-            part[i] = torch.squeeze(x[:, :, i])
+            part[i] = torch.squeeze(x[:, :, i])     # torch.Size([32, 1024])
             # print part[i].shape
-            predict[i] = self.classifiers[i](part[i])
+            predict[i] = self.classifiers[i](part[i])   # torch.Size([32, 4768]), [batch_size, class_num]
 
         y = []
         for i in range(self.part):
@@ -326,8 +327,8 @@ class PCB_dense_test(nn.Module):
 
     def forward(self, x):
         x = self.model.features(x)
-        x = self.avgpool(x)
-        y = x.view(x.size(0),x.size(1),x.size(2))
+        x = self.avgpool(x)     # torch.Size([256, 1024, 6, 1])
+        y = x.view(x.size(0),x.size(1),x.size(2))   # torch.Size([256, 1024, 6]), [batch_size, fc, part]
         return y
 
 # debug model structure

@@ -1,7 +1,12 @@
 # Don't track content of these folders
+output/
 outputs/
 model/
+models/
+log/
 logs/
+result/
+results/
 __pycache__/
 .idea/
 core

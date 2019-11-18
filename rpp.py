@@ -1,5 +1,6 @@
 
 import argparse
+from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -14,7 +15,11 @@ import yaml
 import os
 import time
 import math
+import random
+import numpy as np
 from random_erasing import RandomErasing
+from util import *
+from log import *
 from model import PCB_dense as PCB
 
 
@@ -28,8 +33,7 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
     warm_iteration = round(dataset_sizes['train'] / opt.batchsize) * opt.warm_epoch  # first 5 epoch
 
     for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-        print('-' * 10)
+        logger.debug('Epoch {}/{}'.format(epoch, num_epochs - 1))
 
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
@@ -111,7 +115,7 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
             if phase == 'val':
                 last_model_wts = model.state_dict()
                 if epoch % 10 == 9:
-                    save_network(model, epoch, stage)
+                    save_network(opt, model, epoch, stage)
                 draw_curve(epoch)
 
         time_elapsed = time.time() - since
@@ -125,7 +129,7 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
 
     # load best model weights
     model.load_state_dict(last_model_wts)
-    save_network(model, 'last', stage)
+    save_network(opt, model, 'last', stage)
     return model
 
 ######################################################################
@@ -186,24 +190,6 @@ def draw_curve(current_epoch):
         ax1.legend()
     fig.savefig( os.path.join(opt.model_dir, 'train.jpg'))
 
-######################################################################
-# Save model
-#---------------------------
-def save_network(network, epoch_label, stage):
-    save_filename = 'net_%s.pth'% epoch_label
-    save_sub_dir = os.path.join(opt.model_dir, stage)
-    if not os.path.isdir(save_sub_dir):
-        os.mkdir(save_sub_dir)
-    save_path = os.path.join(save_sub_dir, save_filename)
-    torch.save(network.cpu().state_dict(), save_path)
-    if torch.cuda.is_available():
-        network.cuda(gpu_ids[0])
-
-def load_network(network):
-    save_path = os.path.join(opt.model_dir, 'pcb', 'net_%s.pth'%opt.which_epoch)
-    network.load_state_dict(torch.load(save_path))
-    return network
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training')
@@ -211,12 +197,14 @@ if __name__ == '__main__':
     parser.add_argument('--which_epoch',default='last', type=str, help='0,1,2,3...or last')
     parser.add_argument('--data_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
     parser.add_argument('--model_dir', default='./model/pcb_rpp', type=str, help='save model path')
+    parser.add_argument('--log_dir',default='./logs/train', type=str, help='log dir')
     parser.add_argument('--train_all', action='store_true', help='use all training data' )
     parser.add_argument('--color_jitter', action='store_true', help='use color jitter in training' )
     parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
     parser.add_argument('--warm_epoch', default=0, type=int, help='the first K epoch that needs warm up')
     parser.add_argument('--erasing_p', default=0, type=float, help='Random Erasing probability, in [0,1]')
     parser.add_argument('--PCB', default='none', choices=['none', 'resnet', 'densenet'], help='use PCB')
+    parser.add_argument('--stage', default='pcb', type=str, help='save model path')
     parser.add_argument('--lr', default=0.05, type=float, help='learning rate')
     parser.add_argument('--fp16', action='store_true', help='use float16 instead of float32, which will save about 50% memory' )
     opt = parser.parse_args()
@@ -231,21 +219,31 @@ if __name__ == '__main__':
     else:
         opt.nclasses = 751
 
+    #### log ####
+    subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+    log_dir = os.path.join(os.path.expanduser(opt.log_dir), subdir)
+    if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
+        os.makedirs(log_dir)
+    set_logger(logger, log_dir)
+
     ####  setSeed ####
     seed = 0
+    random.seed(seed)
+    np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     #### gpu ####
     str_ids = opt.gpu_ids.split(',')
-    gpu_ids = []
+    opt.gids = []
     for str_id in str_ids:
         gid = int(str_id)
         if gid >=0:
-            gpu_ids.append(gid)
-    # set gpu ids
-    if len(gpu_ids)>0:
-        torch.cuda.set_device(gpu_ids[0])
+            opt.gids.append(gid)
+    if len(opt.gids)>0:
+        torch.cuda.set_device(opt.gids[0])
     use_gpu = torch.cuda.is_available()
 
     #### load data ####
@@ -284,7 +282,7 @@ if __name__ == '__main__':
     if opt.color_jitter:
         transform_train_list = [transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0)] + transform_train_list
 
-    print(transform_train_list)
+    logger.info('transform {0}'.format(transform_train_list))
     data_transforms = {
         'train': transforms.Compose( transform_train_list ),
         'val': transforms.Compose(transform_val_list),
@@ -317,7 +315,7 @@ if __name__ == '__main__':
 
     #### load and train ####
     model_structure = PCB(opt.nclasses)
-    model = load_network(model_structure)
+    model = load_network(opt, model_structure)
 
     log_file = open(os.path.join(opt.model_dir, 'train.log'), 'w')
     criterion = nn.CrossEntropyLoss()
