@@ -89,6 +89,7 @@ if len(gpu_ids)>0:
     torch.cuda.set_device(gpu_ids[0])
 use_gpu = torch.cuda.is_available()
 
+#### multi scale ####
 logger.info('We use the scale: %s'%opt.scales)
 str_ms = opt.scales.split(',')
 opt.ms = []
@@ -148,7 +149,7 @@ if use_gpu:
 # Extract feature
 with torch.no_grad():
     gallery_feature = extract_feature(opt, model, dataloaders['gallery'])
-    query_feature = extract_feature(model,dataloaders['query'])
+    query_feature = extract_feature(opt, model,dataloaders['query'])
     if opt.multi:
         mquery_feature = extract_feature(opt, model, dataloaders['multi-query'])
     

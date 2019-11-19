@@ -27,6 +27,7 @@ import numpy as np
 from shutil import copyfile
 from log import *
 from util import *
+from reid_metric import compute_mAP
 
 
 def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epochs=25):
@@ -44,56 +45,45 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
+                running_loss = 0.0
+                running_corrects = 0.0
                 scheduler.step()
                 model.train(True)  # Set model to training mode
-            else:
-                model.train(False)  # Set model to evaluate mode
+                for data in dataloaders[phase]:
+                    # get the inputs
+                    inputs, labels = data
+                    if use_gpu:
+                        inputs = Variable(inputs.cuda())
+                        labels = Variable(labels.cuda())
+                    else:
+                        inputs, labels = Variable(inputs), Variable(labels)
 
-            running_loss = 0.0
-            running_corrects = 0.0
-            # Iterate over data.
-            for data in dataloaders[phase]:
-                # get the inputs
-                inputs, labels = data
-                if use_gpu:
-                    inputs = Variable(inputs.cuda())
-                    labels = Variable(labels.cuda())
-                else:
-                    inputs, labels = Variable(inputs), Variable(labels)
+                    # zero the parameter gradients
+                    optimizer.zero_grad()
+                    outputs, _ = model(inputs)
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
+                    if opt.PCB == 'none':
+                        _, preds = torch.max(outputs.data, 1)
+                        loss = criterion(outputs, labels)
+                    else:
+                        part = {}
+                        sm = nn.Softmax(dim=1)
+                        num_part = 6
+                        for i in range(num_part):
+                            part[i] = outputs[i]
 
-                # forward
-                if phase == 'val':
-                    with torch.no_grad():
-                        outputs = model(inputs)
-                else:
-                    outputs = model(inputs)
+                        score = sm(part[0]) + sm(part[1]) + sm(part[2]) + sm(part[3]) + sm(part[4]) + sm(part[5])
+                        _, preds = torch.max(score.data, 1)
 
-                if opt.PCB == 'none':
-                    _, preds = torch.max(outputs.data, 1)
-                    loss = criterion(outputs, labels)
-                else:
-                    part = {}
-                    sm = nn.Softmax(dim=1)
-                    num_part = 6
-                    for i in range(num_part):
-                        part[i] = outputs[i]
+                        loss = criterion(part[0], labels)
+                        for i in range(num_part-1):
+                            loss += criterion(part[i+1], labels)
 
-                    score = sm(part[0]) + sm(part[1]) + sm(part[2]) + sm(part[3]) + sm(part[4]) + sm(part[5])
-                    _, preds = torch.max(score.data, 1)
+                    # backward + optimize only if in training phase
+                    if epoch < opt.warm_epoch:
+                        warm_up = min(1.0, warm_up + 0.9 / warm_iteration)
+                        loss *= warm_up
 
-                    loss = criterion(part[0], labels)
-                    for i in range(num_part-1):
-                        loss += criterion(part[i+1], labels)
-
-                # backward + optimize only if in training phase
-                if epoch < opt.warm_epoch and phase == 'train':
-                    warm_up = min(1.0, warm_up + 0.9 / warm_iteration)
-                    loss *= warm_up
-
-                if phase == 'train':
                     if opt.fp16: # we use optimier to backward loss
                         with amp.scale_loss(loss, optimizer) as scaled_loss:
                             scaled_loss.backward()
@@ -101,28 +91,35 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                         loss.backward()
                     optimizer.step()
 
-                # statistics
-                version = torch.__version__
-                if int(version[0])>0 or int(version[2]) > 3: # for the new version like 0.4.0, 0.5.0 and 1.0.0
-                    running_loss += loss.item() * inputs.size(0)
-                else :  # for the old version like 0.3.0 and 0.3.1
-                    running_loss += loss.data[0] * inputs.size(0)
-                running_corrects += float(torch.sum(preds == labels.data))
+                    # statistics
+                    version = torch.__version__
+                    if int(version[0])>0 or int(version[2]) > 3: # for the new version like 0.4.0, 0.5.0 and 1.0.0
+                        running_loss += loss.item() * inputs.size(0)
+                    else :  # for the old version like 0.3.0 and 0.3.1
+                        running_loss += loss.data[0] * inputs.size(0)
+                    running_corrects += float(torch.sum(preds == labels.data))
 
-            epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = running_corrects / dataset_sizes[phase]
+                epoch_loss = running_loss / dataset_sizes[phase]
+                epoch_acc = running_corrects / dataset_sizes[phase]
 
-            logger.info('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
-            log_file.write('{} epoch : {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc) + '\n')
-            
-            y_loss[phase].append(epoch_loss)
-            y_err[phase].append(1.0-epoch_acc)            
+                logger.info('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+                log_file.write('{} epoch : {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc) + '\n')
+
             # deep copy the model
-            if phase == 'val':
+            else:   # phase = 'val'
+                model.train(False)  # Set model to evaluate mode
+                with torch.no_grad():
+                    query_feature, query_label = extract_feature_and_label(opt, model, dataloaders['valid_query'])
+                    gallery_feature, gallery_label = extract_feature_and_label(opt, model, dataloaders['valid_gallery'])
+                cmc, mAP = compute_mAP(query_feature, query_label, gallery_feature, gallery_label)
+                logger.info('Validation Results')
+                logger.info("mAP: {:.1%}".format(mAP))
+                for r in [1, 5, 10]:
+                    logger.info("CMC curve, Rank-{:<3}:{:.1%}".format(r, cmc[r - 1]))
+
                 last_model_wts = model.state_dict()
                 if epoch%10 == 9:
                     save_network(opt, model, epoch, stage)
-                draw_curve(epoch)
 
         time_elapsed = time.time() - since
         logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -208,20 +205,6 @@ def full_train(model, criterion, log_file, stage, num_epoch):
                         log_file, stage, num_epochs=num_epoch)
     return model
 
-######################################################################
-# Draw Curve
-#---------------------------
-def draw_curve(current_epoch):
-    x_epoch.append(current_epoch)
-    ax0.plot(x_epoch, y_loss['train'], 'bo-', label='train')
-    ax0.plot(x_epoch, y_loss['val'], 'ro-', label='val')
-    ax1.plot(x_epoch, y_err['train'], 'bo-', label='train')
-    ax1.plot(x_epoch, y_err['val'], 'ro-', label='val')
-    if current_epoch == 0:
-        ax0.legend()
-        ax1.legend()
-    fig.savefig( os.path.join(opt.model_dir, 'train.jpg'))
-
 
 if __name__ == '__main__':
     try:
@@ -249,6 +232,7 @@ if __name__ == '__main__':
     parser.add_argument('--PCB', default='none', choices=['none', 'resnet', 'densenet'], help='use PCB')
     parser.add_argument('--RPP', action='store_true', help='use RPP')
     parser.add_argument('--fp16', action='store_true', help='use float16 instead of float32, which will save about 50% memory' )
+    parser.add_argument('--scales', default='1', type=str, help='multiple_scale: e.g. 1 1,1.1  1,1.1,1.2')
     opt = parser.parse_args()
 
     #### log ####
@@ -258,7 +242,7 @@ if __name__ == '__main__':
         os.makedirs(log_dir)
     set_logger(logger, log_dir)
 
-    ####  setSeed ####
+    ####  seed ####
     seed = 0
     random.seed(seed)
     np.random.seed(seed)
@@ -277,6 +261,14 @@ if __name__ == '__main__':
     if len(opt.gids)>0:
         torch.cuda.set_device(opt.gids[0])
     use_gpu = torch.cuda.is_available()
+
+    #### multi scale ####
+    logger.info('We use the scale: %s' % opt.scales)
+    str_ms = opt.scales.split(',')
+    opt.ms = []
+    for s in str_ms:
+        s_f = float(s)
+        opt.ms.append(math.sqrt(s_f))
 
     #### Load Data ####
     transform_train_list = [
@@ -325,28 +317,18 @@ if __name__ == '__main__':
 
     image_datasets = {}
     image_datasets['train'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'train' + train_all), data_transforms['train'])
-    image_datasets['val'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'val'), data_transforms['val'])
+    image_datasets['valid_query'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'valid_query'), data_transforms['val'])
+    image_datasets['valid_gallery'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'valid_gallery'), data_transforms['val'])
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
-        shuffle=True, num_workers=8, pin_memory=True) for x in ['train', 'val']} # 8 workers may work faster
+        shuffle=True, num_workers=8, pin_memory=True) for x in ['train', 'valid_query', 'valid_gallery']} # 8 workers may work faster
 
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid_query', 'valid_gallery']}
     class_names = image_datasets['train'].classes
 
     since = time.time()
     inputs, classes = next(iter(dataloaders['train']))
     logger.debug('dataloaders cost time {0} s'.format(time.time()-since))
 
-    #### loss and metric statistics ####
-    y_loss = {} # loss history
-    y_loss['train'] = []
-    y_loss['val'] = []
-    y_err = {}
-    y_err['train'] = []
-    y_err['val'] = []
-    x_epoch = []
-    fig = plt.figure()
-    ax0 = fig.add_subplot(121, title="loss")
-    ax1 = fig.add_subplot(122, title="top1err")
 
     #### model ####
     if opt.use_dense:

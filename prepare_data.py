@@ -166,7 +166,7 @@ if __name__ == "__main__":
     seed = 0
     np.random.seed(seed)
 
-    base_dir = '/home/kcadmin/user/fengchen/tmp/match'
+    base_dir = '/home/kcadmin/user/fengchen/reid/dataset/match'
     train_all_txt = os.path.join(base_dir, 'train_set', 'train_list.txt')   # 原始的数据txt
     img_source_dir = os.path.join(base_dir, 'train_set') # 图片路径
     img_target_dir = os.path.join(base_dir, 'split') # 划分后图片存放路径
@@ -180,6 +180,6 @@ if __name__ == "__main__":
     writeDataToDir(valid_data_dic,img_source_dir,img_target_dir,type_='valid')
 
     # 将验证集划分为query 和gallery
-    valid_dir = '/home/kcadmin/user/fengchen/tmp/match/split/valid'
+    valid_dir = os.path.join(img_target_dir, 'valid')
     splitQueryGallery(valid_dir, 0.2, img_target_dir)
     print('finish!')

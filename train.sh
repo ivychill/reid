@@ -4,7 +4,7 @@ case $1 in
 
     trick)
         python train.py \
-            --gpu_ids 0 \
+            --gpu_ids 1 \
             --train_all \
             --name trick \
             --warm_epoch 5 \
@@ -17,7 +17,7 @@ case $1 in
 
     main)
         python main_train.py \
-            --gpu_ids 0 \
+            --gpu_ids 1 \
             --train_all \
             --model_dir ./model/base \
             --PCB densenet \
@@ -31,7 +31,7 @@ case $1 in
 
     rpp)
         python rpp.py \
-            --gpu_ids 0 \
+            --gpu_ids 1 \
             --train_all \
             --model_dir ./model/base \
             --PCB densenet \

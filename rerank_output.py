@@ -1,17 +1,22 @@
 import scipy.io
 import torch
 from torchvision import datasets, transforms
+import random
 import numpy as np
 import time
 import os
 import argparse
+from datetime import datetime
 import yaml
 import json
 from  re_ranking import re_ranking
+from log import *
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir',default='../dataset/match/pytorch',type=str, help='./test_data')
 parser.add_argument('--model_dir', default='./model/pcb_rpp', type=str, help='save model path')
+parser.add_argument('--log_dir', default='./logs/test', type=str, help='log dir')
 parser.add_argument('--result_dir', default='./result/pcb_rpp', type=str, help='save result dir')
 parser.add_argument('--multi', action='store_true', help='use multiple query' )
 parser.add_argument('--batchsize', default=256, type=int, help='batchsize')
@@ -21,7 +26,16 @@ with open(config_path, 'r') as stream:
     config = yaml.load(stream)
 opt.PCB = config['PCB']
 
+#### log ####
+subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+log_dir = os.path.join(os.path.expanduser(opt.log_dir), subdir)
+if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
+    os.makedirs(log_dir)
+set_logger(logger, log_dir)
+
+#### seed ####
 seed = 0
+random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)

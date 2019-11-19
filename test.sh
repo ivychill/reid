@@ -4,7 +4,7 @@ case $1 in
 
     trick)
         python test.py \
-            --gpu_ids 0 \
+            --gpu_ids 1 \
             --name warm5_s1_b8_lr2_p0.5 \
             --test_dir ../dataset/match/pytorch \
             --batchsize 32 \
@@ -13,7 +13,7 @@ case $1 in
 
     pcb)
         python main_test.py \
-            --gpu_ids 0 \
+            --gpu_ids 1 \
             --PCB densenet \
             --stage pcb \
             --data_dir ../dataset/match/pytorch \
@@ -26,7 +26,7 @@ case $1 in
 
     rpp)
         python main_test.py \
-            --gpu_ids 0 \
+            --gpu_ids 1 \
             --PCB densenet \
             --stage full \
             --RPP \
@@ -35,7 +35,7 @@ case $1 in
             --result_dir ./result/base \
             --batchsize 256 \
             --which_epoch last \
-            --ms 1,0.9
+            --scales 1,0.9
         ;;
 
     rerank)
