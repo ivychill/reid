@@ -116,7 +116,7 @@ def splitTrainValid(data_all_dic,ratio,skip=1,max_len=300):
         paths = data_all_dic[ind]
         if len(paths) <= skip:
             # 不处理，直接丢掉
-            train_data[ind] = data_all_dic[ind]
+            # train_data[ind] = data_all_dic[ind]
             continue
         if len(paths)>max_len:
             paths = np.random.choice(paths, int(max_len), replace=False)

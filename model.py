@@ -291,7 +291,7 @@ class PCB_dense(nn.Module):
         self.model = model_ft
         self.avgpool = nn.AdaptiveAvgPool2d((self.part, 1))
         self.dropout = nn.Dropout(p=0.5)
-
+        self.linear = nn.Linear(1024*self.part, 128)
         # define 6 classifiers
         self.classifiers = nn.ModuleList()
         for i in range(self.part):
@@ -302,6 +302,8 @@ class PCB_dense(nn.Module):
         x = self.avgpool(x)
         x = self.dropout(x)     # torch.Size([32, 1024, 6, 1]),
         feats = x.view(x.size(0), x.size(1), x.size(2))  # torch.Size([256, 1024, 6]), [batch_size, fc, part]
+        z = feats.view(feats.size(0), -1)   # torch.Size([64, 6144])
+        bn_feats = self.linear(z)
         part = {}
         predict = {}
         # get six part feature batchsize*2048*6
@@ -314,7 +316,7 @@ class PCB_dense(nn.Module):
         for i in range(self.part):
             y.append(predict[i])
 
-        return y, feats
+        return y, feats, bn_feats
 
     def convert_to_rpp(self):
         self.avgpool = RPP()

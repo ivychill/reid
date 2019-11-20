@@ -4,7 +4,7 @@ case $1 in
 
     trick)
         python train.py \
-            --gpu_ids 1 \
+            --gpu_ids 0 \
             --train_all \
             --name trick \
             --warm_epoch 5 \
@@ -17,7 +17,7 @@ case $1 in
 
     main)
         python main_train.py \
-            --gpu_ids 1 \
+            --gpu_ids 0 \
             --train_all \
             --model_dir ./model/base \
             --PCB densenet \
@@ -25,19 +25,21 @@ case $1 in
             --warm_epoch 5 \
             --stride 1 \
             --erasing_p 0 \
+            --batchsize 64 \
             --lr 0.02 \
             --data_dir ../dataset/match/pytorch
         ;;
 
     rpp)
         python rpp.py \
-            --gpu_ids 1 \
+            --gpu_ids 0 \
             --train_all \
             --model_dir ./model/base \
             --PCB densenet \
             --stage pcb \
             --warm_epoch 0 \
             --erasing_p 0 \
+            --batchsize 64 \
             --lr 0.02 \
             --which_epoch 119 \
             --data_dir ../dataset/match/pytorch
@@ -50,4 +52,4 @@ case $1 in
 esac
 exit 0
 
-#../dataset/market1501/Market-1501-v15.09.15/pytorch
+#../dataset/market1501/pytorch

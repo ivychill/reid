@@ -95,7 +95,7 @@ def extract_feature_and_label(opt, model, dataloaders):
                 if scale != 1:
                     # bicubic is only  available in pytorch>= 1.1
                     input_img = nn.functional.interpolate(input_img, scale_factor=scale, mode='bicubic', align_corners=False)
-                _, feats = model(input_img)  # [256, 1024, 6], [batch_size, fc, part]
+                _, feats, _ = model(input_img)  # [256, 1024, 6], [batch_size, fc, part]
                 ff += feats               # [256, 1024, 6], [batch_size, fc, part]
         # norm feature
         if opt.PCB != 'none':
@@ -111,3 +111,18 @@ def extract_feature_and_label(opt, model, dataloaders):
 
         features = torch.cat((features,ff.data.cpu()), 0)   # [256, 6144], [batch_size, fc*part]
     return features, np.asarray(labels)
+
+def data_list(base_dir):
+    data_source = []
+    persons = os.listdir(base_dir)
+    pid = 0
+    camera_id = 0
+    for person in persons:
+        person_path = os.path.join(base_dir, person)
+        images = os.listdir(person_path)
+        for image in images:
+            image_path = os.path.join(person_path, image)
+            # data_source.append((image_path, int(person), camera_id))
+            data_source.append((image_path, int(person)))
+        pid += 1
+    return data_source

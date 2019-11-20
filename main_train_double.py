@@ -54,11 +54,12 @@ def train_model(model, criterion, triplet, optimizer, scheduler, log_file, stage
                 running_corrects = 0.0
                 scheduler.step()
                 model.train(True)  # Set model to training mode
-
-                iter_num = 0
-                for data in dataloaders[phase]:
-                    # print('iter: ', iter_num)
-                    inputs, labels = data
+                # for data in dataloaders[phase]:
+                #     inputs, labels = data
+                for i in range(batch_per_epoch):
+                    logger.debug('before softmax load')
+                    inputs, labels = next(iter(dataloaders['train']))
+                    logger.debug('after softmax load')
                     if use_gpu:
                         inputs = Variable(inputs.cuda())
                         labels = Variable(labels.cuda())
@@ -67,8 +68,8 @@ def train_model(model, criterion, triplet, optimizer, scheduler, log_file, stage
 
                     # zero the parameter gradients
                     optimizer.zero_grad()
-                    outputs, _, bn_feats = model(inputs)
-
+                    outputs, _, _ = model(inputs)
+                    logger.debug('after softmax inference')
                     # TODO: label smoothing
                     if opt.PCB == 'none':
                         _, preds = torch.max(outputs.data, 1)
@@ -86,9 +87,19 @@ def train_model(model, criterion, triplet, optimizer, scheduler, log_file, stage
                         softmax_loss = criterion(part[0], labels)
                         for i in range(num_part-1):
                             softmax_loss += criterion(part[i+1], labels)
-                        # softmax_loss = softmax_loss/num_part
+                        softmax_loss = softmax_loss/num_part
 
-                    triplet_loss = triplet(bn_feats, labels, normalize_feature=True)[0]
+                    logger.debug('before triplet load')
+                    triplet_inputs, triplet_labels = next(iter(triplet_dataloader))
+                    logger.debug('after triplet load')
+                    triplet_inputs = triplet_inputs.cuda()
+                    triplet_labels = triplet_labels.cuda()
+                    logger.debug('after cuda')
+                    # logger.debug('triplet_inputs {} {} {}'.format(triplet_inputs, type(triplet_inputs), len(triplet_inputs)))
+                    # logger.debug('triplet_labels {} {} {}'.format(triplet_labels, type(triplet_labels), len(triplet_labels)))
+                    _, _, bn_feats = model(triplet_inputs)
+                    logger.debug('after triplet inference')
+                    triplet_loss = triplet(bn_feats, triplet_labels, normalize_feature=True)[0]
                     loss = softmax_loss + triplet_loss
 
                     # backward + optimize only if in training phase
@@ -102,14 +113,14 @@ def train_model(model, criterion, triplet, optimizer, scheduler, log_file, stage
                     else:
                         loss.backward()
                     optimizer.step()
-
+                    logger.debug('after step')
                     # statistics
                     running_softmax_loss += softmax_loss.item() * inputs.size(0)
-                    running_triplet_loss += triplet_loss.item() * inputs.size(0)
+                    # logger.debug('softmax batch {}'.format(inputs.size(0)))
+                    running_triplet_loss += triplet_loss.item() * triplet_inputs.size(0)
                     # logger.debug('triple batch {}'.format(triplet_inputs.size(0)))
                     running_loss += running_softmax_loss + running_triplet_loss
                     running_corrects += float(torch.sum(preds == labels.data))
-                    iter_num += 1
 
                 epoch_softmax_loss = running_softmax_loss / (batch_per_epoch * opt.batchsize)
                 epoch_triplet_loss = running_triplet_loss / (batch_per_epoch * opt.batchsize)
@@ -119,6 +130,7 @@ def train_model(model, criterion, triplet, optimizer, scheduler, log_file, stage
                 logger.info('{} softmax: {} triplet: {} Loss: {:.4f} Acc: {:.4f}'
                             .format(phase, epoch_softmax_loss, epoch_triplet_loss, epoch_loss, epoch_acc))
                 log_file.write('{} epoch : {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc) + '\n')
+                exit(1)
 
             # deep copy the model
             else:   # phase = 'val'
@@ -334,24 +346,27 @@ if __name__ == '__main__':
     image_datasets['train'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'train' + train_all), data_transforms['train'])
     image_datasets['valid_query'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'valid_query'), data_transforms['val'])
     image_datasets['valid_gallery'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'valid_gallery'), data_transforms['val'])
-    class_names = image_datasets['train'].classes
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
-        shuffle=True, num_workers=8, pin_memory=True) for x in ['valid_query', 'valid_gallery']} # 8 workers may work faster
-    data_source = data_list(os.path.join(opt.data_dir, 'train' + train_all))
-    train_set = ImageDataset(data_source, data_transforms['train'])
-    dataloaders['train'] = torch.utils.data.DataLoader(train_set, batch_size=opt.batchsize,
-        sampler = RandomIdentitySampler(data_source, opt.batchsize, 4), num_workers=8)
+        shuffle=True, num_workers=8, pin_memory=True) for x in ['train', 'valid_query', 'valid_gallery']} # 8 workers may work faster
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid_query', 'valid_gallery']}
+    softmax_batch_per_epoch = len(dataloaders['train'])
+    # triplet data loader
+    triplet_data_source = data_list(os.path.join(opt.data_dir, 'train' + train_all))
+    triplet_train_set = ImageDataset(triplet_data_source, data_transforms['train'])
+    triplet_dataloader = torch.utils.data.DataLoader(triplet_train_set, batch_size=opt.batchsize,
+        sampler = RandomIdentitySampler(triplet_data_source, opt.batchsize, 4), num_workers=8)
+    triplet_dataset_sizes = len(triplet_data_source)
+    triplet_batch_per_epoch = len(triplet_dataloader)
+    batch_per_epoch = min(softmax_batch_per_epoch, triplet_batch_per_epoch)
 
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['valid_query', 'valid_gallery']}
-    dataset_sizes['train'] = len(train_set)
-    batch_per_epoch = len(dataloaders['train'])
+    class_names = image_datasets['train'].classes
 
-    logger.info('dataset_sizes {}'.format(dataset_sizes['train']))
-    logger.info('batch_per_epoch {}'.format(batch_per_epoch))
+    logger.info('softmax dataset_sizes {}, triplet dataset_sizes {}'.format(dataset_sizes, triplet_dataset_sizes))
+    logger.info('softmax_batch_per_epoch {}, triplet_batch_per_epoch {}'.format(softmax_batch_per_epoch, triplet_batch_per_epoch))
 
-    since = time.time()
-    inputs, classes = next(iter(dataloaders['train']))
-    logger.debug('dataloaders cost time {0} s'.format(time.time()-since))
+    # since = time.time()
+    # inputs, classes = next(iter(dataloaders['train']))
+    # logger.debug('dataloaders cost time {0} s'.format(time.time()-since))
 
     #### model ####
     if opt.use_dense:
