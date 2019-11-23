@@ -12,7 +12,7 @@ case $1 in
         ;;
 
     pcb)
-        python main_test.py \
+        python main_test_arc.py \
             --gpu_ids 0 \
             --PCB densenet \
             --stage pcb \
@@ -20,7 +20,7 @@ case $1 in
             --model_dir ./model/base \
             --result_dir ./result/base \
             --batchsize 256 \
-            --which_epoch last \
+            --which_epoch best \
             --scales 1,0.9
         ;;
 
@@ -34,7 +34,7 @@ case $1 in
             --model_dir ./model/base \
             --result_dir ./result/base \
             --batchsize 256 \
-            --which_epoch last \
+            --which_epoch best \
             --scales 1,0.9
         ;;
 

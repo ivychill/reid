@@ -9,59 +9,30 @@ import pretrainedmodels
 ######################################################################
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
-    if classname.find('Conv2d') != -1:
-        init.kaiming_normal_(m.weight.data, mode='fan_out', nonlinearity='relu')
-    elif classname.find('Linear') != -1:
-        init.kaiming_normal(m.weight.data, a=0, mode='fan_out')
-        init.constant(m.bias.data, 0.0)
-    elif classname.find('BatchNorm1d') != -1:
-        init.normal(m.weight.data, 1.0, 0.02)
-        init.constant(m.bias.data, 0.0)
-    elif classname.find('BatchNorm2d') != -1:
-        init.constant(m.weight.data, 1)
-        init.constant(m.bias.data, 0)
+    if classname.find('Linear') != -1:
+        nn.init.kaiming_normal_(m.weight, a=0, mode='fan_out')
+        nn.init.constant_(m.bias, 0.0)
+    elif classname.find('Conv') != -1:
+        nn.init.kaiming_normal_(m.weight, a=0, mode='fan_in')
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0.0)
+    elif classname.find('BatchNorm') != -1:
+        if m.affine:
+            nn.init.constant_(m.weight, 1.0)
+            nn.init.constant_(m.bias, 0.0)
 
 
 def weights_init_classifier(m):
     classname = m.__class__.__name__
     if classname.find('Linear') != -1:
-        init.normal(m.weight.data, std=0.001)
-        init.constant(m.bias.data, 0.0)
+        nn.init.normal_(m.weight, std=0.001)
+        if m.bias:
+            nn.init.constant_(m.bias, 0.0)
 
 
 # Defines the new fc layer and classification layer
 # |--Linear--|--bn--|--relu--|--Linear--|
-class ClassBlock_arc(nn.Module):
-    # def __init__(self, input_dim, class_num, relu=True, num_bottleneck=512):
-    def __init__(self, input_dim, class_num, droprate=0, relu=False, bnorm=True, num_bottleneck=512, linear=True):
-        super(ClassBlock_arc, self).__init__()
-        add_block = []
-
-        # add_block += [nn.Conv2d(input_dim, num_bottleneck, kernel_size=1, bias=False)]
-        # add_block += [nn.BatchNorm2d(num_bottleneck)]
-        # if relu:
-        #     #add_block += [nn.LeakyReLU(0.1)]
-        #     add_block += [nn.ReLU(inplace=True)]
-        if linear:
-            add_block += [nn.Linear(input_dim, num_bottleneck)]
-        else:
-            num_bottleneck = input_dim
-        if bnorm:
-            add_block += [nn.BatchNorm1d(num_bottleneck)]
-        if relu:
-            add_block += [nn.LeakyReLU(0.1)]
-        if droprate>0:
-            add_block += [nn.Dropout(p=droprate)]
-        add_block = nn.Sequential(*add_block)
-        add_block.apply(weights_init_kaiming)
-
-        self.add_block = add_block
-
-    def forward(self, x):
-        x = self.add_block(x)
-        x = torch.squeeze(x)
-        return x
-
+'''
 class ClassBlock(nn.Module):
     # def __init__(self, input_dim, class_num, relu=True, num_bottleneck=512):
     def __init__(self, input_dim, class_num, droprate=0, relu=False, bnorm=True, num_bottleneck=512, linear=True):
@@ -95,9 +66,36 @@ class ClassBlock(nn.Module):
         self.classifier = classifier
 
     def forward(self, x):
-        x = self.add_block(x)   # [batch_size, num_bottleneck]
-        x = torch.squeeze(x)    # [batch_size, num_bottleneck], unnecessary 'squeeze'
-        x = self.classifier(x)  # [batch_size, class_num]
+        x = self.add_block(x)
+        x = torch.squeeze(x)
+        x = self.classifier(x)
+        return x
+'''
+
+class ClassBlock(nn.Module):
+    # def __init__(self, input_dim, class_num, relu=True, num_bottleneck=512):
+    def __init__(self, input_dim, class_num, droprate=0, relu=False, bnorm=True, num_bottleneck=512, linear=True):
+        super(ClassBlock, self).__init__()
+
+        self.bottleneck = nn.BatchNorm1d(input_dim)
+        self.bottleneck.bias.requires_grad_(False)  # no shift
+        self.classifier = nn.Linear(input_dim, class_num, bias=False)
+
+        self.bottleneck.apply(weights_init_kaiming)
+        self.classifier.apply(weights_init_classifier)
+
+
+    def forward(self, x):
+
+        feat = self.bottleneck(x)
+        cls_score = self.classifier(feat)
+
+        return cls_score
+
+
+
+
+
 
 # Define the ResNet50-based Model
 class ft_net(nn.Module):
@@ -279,6 +277,7 @@ class PCB(nn.Module):
         self.avgpool = RPP()
         return self
 
+
 class PCB_test(nn.Module):
     def __init__(self, model, featrue_H=False):
         super(PCB_test, self).__init__()
@@ -310,60 +309,6 @@ class PCB_test(nn.Module):
         f = x.view(x.size(0), x.size(1), x.size(2))
         return f
 
-class PCB_dense_arc(nn.Module):
-    def __init__(self, class_num):
-        super(PCB_dense_arc, self).__init__()
-
-        self.part = 6  # We cut the pool5 to 6 parts
-        model_ft = models.densenet121(pretrained=True)
-        # TODO: stride 1
-        self.model = model_ft
-        self.avgpool = nn.AdaptiveAvgPool2d((self.part, 1))
-        self.dropout = nn.Dropout(p=0.5)
-        self.linear = nn.Linear(1024*self.part, 128)
-        # define 6 classifiers
-        self.classifiers = nn.ModuleList()
-        for i in range(self.part):
-            self.classifiers.append(ClassBlock_arc(1024, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256))
-
-    def forward(self, x):
-        x = self.model.features(x)
-        x = self.avgpool(x)
-        x = self.dropout(x)     # torch.Size([32, 1024, 6, 1]),
-        feats = x.view(x.size(0), x.size(1), x.size(2))  # torch.Size([256, 1024, 6]), [batch_size, fc, part]
-        z = feats.view(feats.size(0), -1)   # torch.Size([64, 6144])
-        bn_feats = self.linear(z)
-        part = {}
-        predict = {}
-        # get six part feature batchsize*2048*6
-        for i in range(self.part):
-            part[i] = torch.squeeze(x[:, :, i])     # torch.Size([32, 1024])
-            predict[i] = self.classifiers[i](part[i])   # torch.Size([32, 256]), [batch_size, num_bottleneck]
-
-        y = []
-        for i in range(self.part):
-            y.append(predict[i])
-
-        return y, feats, bn_feats
-
-    def convert_to_rpp(self):
-        self.avgpool = RPP()
-        return self
-
-class PCB_dense_arc_test(nn.Module):
-    def __init__(self, model):
-        super(PCB_dense_arc_test,self).__init__()
-        self.part = 6
-        self.model = model.model
-        self.avgpool = nn.AdaptiveAvgPool2d((self.part,1))
-
-    def forward(self, x):
-        x = self.model.features(x)
-        x = self.avgpool(x)     # torch.Size([256, 1024, 6, 1])
-        y = x.view(x.size(0),x.size(1),x.size(2))   # torch.Size([256, 1024, 6]), [batch_size, fc, part]
-        return y
-
-
 class PCB_dense(nn.Module):
     def __init__(self, class_num):
         super(PCB_dense, self).__init__()
@@ -386,19 +331,21 @@ class PCB_dense(nn.Module):
         x = self.dropout(x)     # torch.Size([32, 1024, 6, 1]),
         feats = x.view(x.size(0), x.size(1), x.size(2))  # torch.Size([256, 1024, 6]), [batch_size, fc, part]
         z = feats.view(feats.size(0), -1)   # torch.Size([64, 6144])
-        bn_feats = self.linear(z)
+        # bn_feats = self.linear(z)
         part = {}
         predict = {}
         # get six part feature batchsize*2048*6
         for i in range(self.part):
             part[i] = torch.squeeze(x[:, :, i])     # torch.Size([32, 1024])
+            # print part[i].shape
             predict[i] = self.classifiers[i](part[i])   # torch.Size([32, 4768]), [batch_size, class_num]
 
         y = []
         for i in range(self.part):
             y.append(predict[i])
 
-        return y, feats, bn_feats
+        return y, z
+        # return y, feats, bn_feats
 
     def convert_to_rpp(self):
         self.avgpool = RPP()

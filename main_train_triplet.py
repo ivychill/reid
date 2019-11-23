@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
+from torch.utils.data.sampler import Sampler
 from torchvision import datasets, transforms
 import matplotlib
 matplotlib.use('agg')
@@ -28,14 +29,15 @@ from shutil import copyfile
 from log import *
 from util import *
 from reid_metric import compute_mAP
+from loss import TripletLoss, CrossEntropyLabelSmooth
+from triplet_sampler import RandomIdentitySampler
+from dataset_loader import ImageDataset
 
-
-def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epochs=25):
+def train_model(model, criterion, triplet, optimizer, scheduler, log_file, stage, num_epochs=25):
     since = time.time()
 
-    best_model_wts = model.state_dict()
-    best_acc = 0.0
-    best_epoch = 0
+    #best_model_wts = model.state_dict()
+    #best_acc = 0.0
     last_model_wts = model.state_dict()
     warm_up = 0.1 # We start from the 0.1*lrRate
     warm_iteration = round(dataset_sizes['train']/opt.batchsize)*opt.warm_epoch # first 5 epoch
@@ -46,12 +48,16 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
+                running_softmax_loss = 0.0
+                running_triplet_loss = 0.0
                 running_loss = 0.0
                 running_corrects = 0.0
                 scheduler.step()
                 model.train(True)  # Set model to training mode
+
+                iter_num = 0
                 for data in dataloaders[phase]:
-                    # get the inputs
+                    # print('iter: ', iter_num)
                     inputs, labels = data
                     if use_gpu:
                         inputs = Variable(inputs.cuda())
@@ -61,11 +67,12 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
 
                     # zero the parameter gradients
                     optimizer.zero_grad()
-                    outputs, _, _ = model(inputs)
+                    outputs, _, bn_feats = model(inputs)
 
+                    # TODO: label smoothing
                     if opt.PCB == 'none':
                         _, preds = torch.max(outputs.data, 1)
-                        loss = criterion(outputs, labels)
+                        softmax_loss = criterion(outputs, labels)
                     else:
                         part = {}
                         sm = nn.Softmax(dim=1)
@@ -76,9 +83,13 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                         score = sm(part[0]) + sm(part[1]) + sm(part[2]) + sm(part[3]) + sm(part[4]) + sm(part[5])
                         _, preds = torch.max(score.data, 1)
 
-                        loss = criterion(part[0], labels)
+                        softmax_loss = criterion(part[0], labels)
                         for i in range(num_part-1):
-                            loss += criterion(part[i+1], labels)
+                            softmax_loss += criterion(part[i+1], labels)
+                        # softmax_loss = softmax_loss/num_part
+
+                    triplet_loss = triplet(bn_feats, labels, normalize_feature=True)[0] * 3
+                    loss = softmax_loss + triplet_loss
 
                     # backward + optimize only if in training phase
                     if epoch < opt.warm_epoch:
@@ -93,20 +104,20 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                     optimizer.step()
 
                     # statistics
-                    version = torch.__version__
-                    if int(version[0])>0 or int(version[2]) > 3: # for the new version like 0.4.0, 0.5.0 and 1.0.0
-                        running_loss += loss.item() * inputs.size(0)
-                    else :  # for the old version like 0.3.0 and 0.3.1
-                        running_loss += loss.data[0] * inputs.size(0)
+                    running_softmax_loss += softmax_loss.item() * inputs.size(0)
+                    running_triplet_loss += triplet_loss.item() * inputs.size(0)
+                    # logger.debug('triple batch {}'.format(triplet_inputs.size(0)))
+                    running_loss += running_softmax_loss + running_triplet_loss
                     running_corrects += float(torch.sum(preds == labels.data))
+                    iter_num += 1
 
-                epoch_loss = running_loss / dataset_sizes[phase]
-                epoch_acc = running_corrects / dataset_sizes[phase]
-                if epoch_acc > best_acc:
-                    best_acc = epoch_acc
-                    best_epoch = epoch
-                    best_model_wts = model.state_dict()
-                logger.info('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+                epoch_softmax_loss = running_softmax_loss / (batch_per_epoch * opt.batchsize)
+                epoch_triplet_loss = running_triplet_loss / (batch_per_epoch * opt.batchsize)
+                epoch_loss = epoch_softmax_loss + epoch_triplet_loss
+                epoch_acc = running_corrects / (batch_per_epoch * opt.batchsize)
+
+                logger.info('{} softmax: {} triplet: {} Loss: {:.4f} Acc: {:.4f}'
+                            .format(phase, epoch_softmax_loss, epoch_triplet_loss, epoch_loss, epoch_acc))
                 log_file.write('{} epoch : {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc) + '\n')
 
             # deep copy the model
@@ -130,10 +141,9 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
 
     time_elapsed = time.time() - since
     logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    logger.info('Best val acc: {:4f}'.format(best_acc))
-    model.load_state_dict(best_model_wts)
-    save_network(opt, model, best_epoch, stage)
-    save_network(opt, model, 'best', stage)
+    #print('Best val Acc: {:4f}'.format(best_acc))
+
+    # load best model weights
     model.load_state_dict(last_model_wts)
     save_network(opt, model, 'last', stage)
     return model
@@ -143,8 +153,8 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
 # PCB train
 # ------------------
 # Step1 : train the PCB model
-# According to original paper, we set the difference learning rate for difference layers.
-def pcb_train(model, criterion, log_file, stage, num_epoch):
+# According to original paper, we set the dif0.44ference learning rate for difference layers.
+def pcb_train(model, criterion, triplet, log_file, stage, num_epoch):
     ignored_params = list(map(id, model.classifiers.parameters()))
 
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
@@ -157,7 +167,7 @@ def pcb_train(model, criterion, log_file, stage, num_epoch):
 
     # Decay LR by a factor of 0.1 every 40 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=40, gamma=0.1)
-    model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
+    model = train_model(model, criterion, triplet, optimizer_ft, exp_lr_scheduler,
                         log_file, stage, num_epochs=num_epoch)
     return model
 
@@ -167,7 +177,7 @@ def pcb_train(model, criterion, log_file, stage, num_epoch):
 # ------------------
 # Setp 2&3: train the rpp layers
 # According to original paper, we set the learning rate at 0.01 for rpp layers.
-def rpp_train(model, criterion, log_file, stage, num_epoch):
+def rpp_train(model, criterion, triplet, log_file, stage, num_epoch):
     # ignored_params = list(map(id, get_net(opt, model).avgpool.parameters()))
     # base_params = filter(lambda p: id(p) not in ignored_params, get_net(opt, model).parameters())
     # optimizer_ft = optim.SGD([
@@ -181,7 +191,7 @@ def rpp_train(model, criterion, log_file, stage, num_epoch):
 
     # Decay LR by a factor of 0.1 every 100 epochs (never use)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=100, gamma=0.1)
-    model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
+    model = train_model(model, criterion, triplet, optimizer_ft, exp_lr_scheduler,
                         log_file, stage, num_epochs=num_epoch)
     return model
 
@@ -190,7 +200,7 @@ def rpp_train(model, criterion, log_file, stage, num_epoch):
 # ------------------
 # Step 4: train the whole net
 # According to original paper, we set the difference learning rate for the whole net
-def full_train(model, criterion, log_file, stage, num_epoch):
+def full_train(model, criterion, triplet, log_file, stage, num_epoch):
     ignored_params = list(map(id, model.classifiers.parameters()))
     ignored_params += list(map(id, model.avgpool.parameters()))
 
@@ -206,7 +216,7 @@ def full_train(model, criterion, log_file, stage, num_epoch):
 
     # Decay LR by a factor of 0.1 every 100 epochs (never use)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=100, gamma=0.1)
-    model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
+    model = train_model(model, criterion, triplet, optimizer_ft, exp_lr_scheduler,
                         log_file, stage, num_epochs=num_epoch)
     return model
 
@@ -324,16 +334,24 @@ if __name__ == '__main__':
     image_datasets['train'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'train' + train_all), data_transforms['train'])
     image_datasets['valid_query'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'valid_query'), data_transforms['val'])
     image_datasets['valid_gallery'] = datasets.ImageFolder(os.path.join(opt.data_dir, 'valid_gallery'), data_transforms['val'])
-    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
-        shuffle=True, num_workers=8, pin_memory=True) for x in ['train', 'valid_query', 'valid_gallery']} # 8 workers may work faster
-
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid_query', 'valid_gallery']}
     class_names = image_datasets['train'].classes
+    dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
+        shuffle=True, num_workers=8, pin_memory=True) for x in ['valid_query', 'valid_gallery']} # 8 workers may work faster
+    data_source = data_list(os.path.join(opt.data_dir, 'train' + train_all))
+    train_set = ImageDataset(data_source, data_transforms['train'])
+    dataloaders['train'] = torch.utils.data.DataLoader(train_set, batch_size=opt.batchsize,
+        sampler = RandomIdentitySampler(data_source, opt.batchsize, 4), num_workers=8)
+
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['valid_query', 'valid_gallery']}
+    dataset_sizes['train'] = len(train_set)
+    batch_per_epoch = len(dataloaders['train'])
+
+    logger.info('dataset_sizes {}'.format(dataset_sizes['train']))
+    logger.info('batch_per_epoch {}'.format(batch_per_epoch))
 
     since = time.time()
     inputs, classes = next(iter(dataloaders['train']))
     logger.debug('dataloaders cost time {0} s'.format(time.time()-since))
-
 
     #### model ####
     if opt.use_dense:
@@ -365,7 +383,8 @@ if __name__ == '__main__':
 
     opt.warm_epoch = 5
     criterion = nn.CrossEntropyLoss()
-    model = pcb_train(model, criterion, log_file, stage, 120)
+    triplet = TripletLoss(0.3)
+    model = pcb_train(model, criterion, triplet, log_file, stage, 120)
 
     # step2&3: RPP training #
     if opt.RPP:
@@ -374,11 +393,11 @@ if __name__ == '__main__':
         if use_gpu:
             model = model.cuda()
         opt.warm_epoch = 0
-        model = rpp_train(model, criterion, log_file, stage, 10)
+        model = rpp_train(model, criterion, triplet, log_file, stage, 10)
 
         # step4: whole net training #
         stage = 'full'
         opt.warm_epoch = 0
-        full_train(model, criterion, log_file, stage, 20)
+        full_train(model, criterion, triplet, log_file, stage, 20)
 
     log_file.close()

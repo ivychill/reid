@@ -18,7 +18,7 @@ import time
 import os
 # from model import ft_net, ft_net_dense, ft_net_NAS, PCB
 from model import ft_net, ft_net_dense, ft_net_NAS
-from model import PCB_dense as PCB
+from model import PCB_dense_arc as PCB
 from random_erasing import RandomErasing
 import yaml
 import math
@@ -28,6 +28,7 @@ from shutil import copyfile
 from log import *
 from util import *
 from reid_metric import compute_mAP
+from loss import AngularPenaltySMLoss
 
 
 def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epochs=25):
@@ -71,14 +72,20 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                         sm = nn.Softmax(dim=1)
                         num_part = 6
                         for i in range(num_part):
-                            part[i] = outputs[i]
+                            part[i] = outputs[i]    # part[0] torch.Size([64, 256]) [batch_size, num_bottleneck]
 
-                        score = sm(part[0]) + sm(part[1]) + sm(part[2]) + sm(part[3]) + sm(part[4]) + sm(part[5])
+                        loss = 0
+                        class_score = []
+                        for i in range(num_part):
+                            arc_loss, arc_class_score = criterion(part[i], labels)
+                            loss += arc_loss
+                            class_score.append(arc_class_score)
+
+                        score = 0
+                        for i in range(num_part):
+                            score += sm(class_score[i])     # part[0] torch.Size([64, 4768]) [batch_size, class_num]
+
                         _, preds = torch.max(score.data, 1)
-
-                        loss = criterion(part[0], labels)
-                        for i in range(num_part-1):
-                            loss += criterion(part[i+1], labels)
 
                     # backward + optimize only if in training phase
                     if epoch < opt.warm_epoch:
@@ -105,6 +112,7 @@ def train_model(model, criterion, optimizer, scheduler, log_file, stage, num_epo
                 if epoch_acc > best_acc:
                     best_acc = epoch_acc
                     best_epoch = epoch
+                    logger.info('best acc: {}, epoch: {}'.format(best_acc, epoch))
                     best_model_wts = model.state_dict()
                 logger.info('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
                 log_file.write('{} epoch : {} Loss: {:.4f} Acc: {:.4f}'.format(epoch, phase, epoch_loss, epoch_acc) + '\n')
@@ -364,8 +372,9 @@ if __name__ == '__main__':
         model = model.cuda()
 
     opt.warm_epoch = 5
-    criterion = nn.CrossEntropyLoss()
-    model = pcb_train(model, criterion, log_file, stage, 120)
+    # criterion = nn.CrossEntropyLoss()
+    criterion = AngularPenaltySMLoss(256, opt.nclasses, loss_type='arcface')
+    model = pcb_train(model, criterion, log_file, stage, 200)
 
     # step2&3: RPP training #
     if opt.RPP:

@@ -16,12 +16,11 @@ case $1 in
         ;;
 
     main)
-        python main_train.py \
+        python main_train_arc.py \
             --gpu_ids 0 \
             --train_all \
             --model_dir ./model/base \
             --PCB densenet \
-            --RPP \
             --warm_epoch 5 \
             --stride 1 \
             --erasing_p 0 \
